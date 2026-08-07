@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZEROVA 馳諾瓦 | EV 光充儲三維收益與 ROI 精算模型</title>
+    <title>ZEROVA 馳諾瓦 | EV 充儲一體 4 階段 ROI 精算工具</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js -->
@@ -15,11 +15,11 @@
                 extend: {
                     colors: {
                         zerova: {
-                            main: '#00A896',    // ZEROVA 綠
-                            accent: '#02C39A',  // 高亮綠
-                            dark: '#081c19',    // 深綠底色
-                            card: '#0f172a',    // 深色卡片背景
-                            border: '#1e293b'   // 邊框顏色
+                            main: '#00A896',
+                            accent: '#02C39A',
+                            dark: '#081c19',
+                            card: '#0f172a',
+                            border: '#1e293b'
                         }
                     }
                 }
@@ -43,10 +43,9 @@
 </head>
 <body class="p-4 md:p-8 min-h-screen">
 
-    <!-- Header 頂部導覽列與 ZEROVA Logo -->
+    <!-- Header 頂部標頭與 Logo -->
     <header class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pb-4 border-b border-slate-800 gap-4">
         <div class="flex items-center gap-4">
-            <!-- ZEROVA Logo (SVG) -->
             <div class="flex items-center gap-2">
                 <svg class="w-9 h-9 text-teal-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
@@ -58,13 +57,13 @@
             </div>
             <div class="h-8 w-[1px] bg-slate-700 hidden sm:block"></div>
             <div>
-                <h1 class="text-xl font-bold text-white tracking-wide">EV 光充儲三維收益與 ROI 精算模型</h1>
-                <p class="text-xs text-slate-400">對齊台電高壓電價與 CPO 充儲一體化（EV + BESS + DLM）商業獲利架構</p>
+                <h1 class="text-xl font-bold text-white tracking-wide">EV 充儲一體化經濟效益精算模型</h1>
+                <p class="text-xs text-slate-400">對齊台電《營業規則》高壓三段式與電動車專用時間電價</p>
             </div>
         </div>
-        <div class="flex items-center gap-3">
+        <div>
             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-teal-500/10 text-teal-400 border border-teal-500/30">
-                <span class="w-2 h-2 rounded-full bg-teal-400 mr-2 animate-pulse"></span> 馳諾瓦 EMS 動態精算中
+                <span class="w-2 h-2 rounded-full bg-teal-400 mr-2 animate-pulse"></span> 台電 2026 最新費率套用中
             </span>
         </div>
     </header>
@@ -72,224 +71,264 @@
     <!-- 主內容區 -->
     <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        <!-- 左側：三維參數輸入控制面板 (5 欄) -->
+        <!-- 左側：輸入條件控制區 (5 欄) -->
         <div class="lg:col-span-5 space-y-6">
 
-            <!-- 維度 1：EV 充電服務營收 -->
+            <!-- 步驟 1：充電樁硬體與站點 CAPEX 估算 -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
-                <div class="flex items-center gap-2 mb-4 text-teal-400 font-bold border-b border-slate-800 pb-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    <h2>1. EV 充電槍場域與服務費率</h2>
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-2">
+                    <div class="flex items-center gap-2 text-teal-400 font-bold">
+                        <span class="w-6 h-6 rounded-full bg-teal-500/20 flex items-center justify-center text-xs">1</span>
+                        <h2>充電樁規模與站點 CAPEX</h2>
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">快充槍數量 (槍)</label>
+                        <label class="block text-xs text-slate-400 mb-1">充電槍數量 (槍)</label>
                         <input type="number" id="gunCount" value="4" class="w-full p-2.5 rounded-lg text-sm">
                     </div>
                     <div>
                         <label class="block text-xs text-slate-400 mb-1">單槍功率 (kW)</label>
                         <input type="number" id="gunPower" value="180" class="w-full p-2.5 rounded-lg text-sm">
                     </div>
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">每日每槍預估充電量 (kWh)</label>
-                        <input type="number" id="dailyKwhPerGun" value="150" class="w-full p-2.5 rounded-lg text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">車主充電服務費 (元/kWh)</label>
-                        <input type="number" id="chargingPrice" value="9.5" step="0.1" class="w-full p-2.5 rounded-lg text-sm">
+                    <div class="col-span-2 bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-400">總充電功率拉載：</span>
+                            <span class="font-bold text-teal-300" id="calcTotalGunKw">720 kW</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs mt-1">
+                            <span class="text-slate-400">預估充電站硬體建置成本 (CAPEX)：</span>
+                            <span class="font-bold text-white" id="calcEvCapex">NT$ 4,320,000</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 維度 2：契約抑低與超約防護 -->
+            <!-- 步驟 2：單純充電站營運與獨立回收效益 -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
-                <div class="flex items-center gap-2 mb-4 text-emerald-400 font-bold border-b border-slate-800 pb-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <h2>2. 契約容量優化與超約防護</h2>
-                </div>
-                <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs text-slate-400 mb-1">原本需申請契約容量 (kW)</label>
-                            <input type="number" id="origContract" value="700" class="w-full p-2.5 rounded-lg text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-slate-400 mb-1">導入儲能降約目標 (kW)</label>
-                            <input type="number" id="targetContract" value="300" class="w-full p-2.5 rounded-lg text-sm">
-                        </div>
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-2">
+                    <div class="flex items-center gap-2 text-amber-400 font-bold">
+                        <span class="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-xs">2</span>
+                        <h2>單純充電站效益 (無儲能)</h2>
                     </div>
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">未加儲能前預估最高超約功率 (kW)</label>
-                        <input type="number" id="overPower" value="200" class="w-full p-2.5 rounded-lg text-sm">
-                        <p class="text-[11px] text-slate-500 mt-1">※ ZEROVA EMS 自動觸發 BESS 放電與 DLM 防護，避免 2~3 倍超約罰款。</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 維度 3：儲能規格與擴容 CAPEX 節省 -->
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
-                <div class="flex items-center gap-2 mb-4 text-cyan-400 font-bold border-b border-slate-800 pb-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                    <h2>3. 儲能 (BESS) 規格與擴容 CAPEX 避險</h2>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">儲能系統功率 (kW)</label>
-                        <input type="number" id="bessKw" value="100" class="w-full p-2.5 rounded-lg text-sm">
+                        <label class="block text-xs text-slate-400 mb-1">全站每日總充電量 (kWh)</label>
+                        <input type="number" id="dailyTotalKwh" value="600" class="w-full p-2.5 rounded-lg text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">儲能系統容量 (kWh)</label>
-                        <input type="number" id="bessKwh" value="215" class="w-full p-2.5 rounded-lg text-sm">
+                        <label class="block text-xs text-slate-400 mb-1">充電服務費定價 (元/kWh)</label>
+                        <input type="number" id="chargingPrice" value="9.5" step="0.1" class="w-full p-2.5 rounded-lg text-sm">
                     </div>
-                    <div class="col-span-2">
-                        <label class="block text-xs text-slate-400 mb-1">免除台電傳統高低壓擴容投資 (萬元 TWD)</label>
-                        <input type="number" id="gridCapexSaved" value="450" class="w-full p-2.5 rounded-lg text-sm text-teal-300 font-bold">
-                        <p class="text-[11px] text-slate-500 mt-1">※ 以「充儲一體 Buffer」替代向台電申請變壓器擴容之硬體施工省費。</p>
+                    <div class="col-span-2 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-300">單純充電站預估回收年限：</span>
+                            <span class="font-bold text-amber-400 text-sm" id="standalonePayback">6.8 年</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs mt-1">
+                            <span class="text-slate-400">主要痛點：</span>
+                            <span class="text-amber-300/80 text-[11px]">台電高額基本費吃掉 40% 以上毛利</span>
+                        </div>
                     </div>
-                    <div class="col-span-2">
-                        <label class="block text-xs text-slate-400 mb-1">充儲一體總建置成本 CAPEX (萬元 TWD)</label>
-                        <input type="number" id="totalCapex" value="750" class="w-full p-2.5 rounded-lg text-sm text-amber-300 font-bold">
+                </div>
+            </div>
+
+            <!-- 步驟 3：儲能規格推導與充儲一體整合效益 -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-2">
+                    <div class="flex items-center gap-2 text-emerald-400 font-bold">
+                        <span class="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-xs">3</span>
+                        <h2>儲能規格推導與充儲整合效益</h2>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <!-- 自動推導提示 -->
+                    <div class="p-3 bg-emerald-950/30 border border-emerald-500/30 rounded-xl text-xs text-emerald-300/90">
+                        <p class="font-semibold mb-1">💡 ZEROVA 智慧最適化建議：</p>
+                        <p id="bessRecommendText">基於 720kW 快充功率，建議配置 <b>200kW / 400kWh</b> 儲能櫃，可將台電契約容量從 500kW 抑制至 200kW。</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">調降後契約容量目標 (kW)</label>
+                            <input type="number" id="targetContractKw" value="200" class="w-full p-2.5 rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">設定儲能系統容量 (kWh)</label>
+                            <input type="number" id="bessKwh" value="400" class="w-full p-2.5 rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">儲能建置單價 (元/kWh)</label>
+                            <input type="number" id="bessPricePerKwh" value="15000" class="w-full p-2.5 rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">免除傳統擴容工程 (萬元)</label>
+                            <input type="number" id="avoidedGridCapex" value="400" class="w-full p-2.5 rounded-lg text-sm">
+                        </div>
                     </div>
                 </div>
             </div>
 
         </div>
 
-        <!-- 右側：KPI 指標與分析圖表 (7 欄) -->
+        <!-- 右側：對比與圖表分析區 (7 欄) -->
         <div class="lg:col-span-7 space-y-6">
 
-            <!-- 頂部 3 大 KPI 數據卡片 -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-slate-900/90 border border-teal-500/30 rounded-2xl p-4 relative overflow-hidden">
-                    <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-teal-500/10 rounded-full blur-xl"></div>
-                    <p class="text-xs text-slate-400 font-medium">首年總營運淨效益</p>
-                    <p class="text-2xl font-black text-teal-400 mt-1" id="kpiAnnualRevenue">NT$ 0</p>
-                    <p class="text-[11px] text-slate-500 mt-1">充電賣電毛利 + 降本 + 套利</p>
+            <!-- 兩者回收年限對比 KPI -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 relative">
+                    <span class="text-xs text-slate-400">方案 A：單純充電站 (無儲能)</span>
+                    <p class="text-2xl font-black text-slate-300 mt-1" id="kpiA_Payback">6.8 年回本</p>
+                    <p class="text-[11px] text-slate-500 mt-1" id="kpiA_AnnualBenefit">年淨效益：NT$ 635,000</p>
                 </div>
-
-                <div class="bg-slate-900/90 border border-emerald-500/30 rounded-2xl p-4 relative overflow-hidden">
-                    <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl"></div>
-                    <p class="text-xs text-slate-400 font-medium">動態投資回收期 (ROI)</p>
-                    <p class="text-2xl font-black text-emerald-400 mt-1" id="kpiPaybackYears">0.0 年</p>
-                    <p class="text-[11px] text-slate-500 mt-1" id="kpiNetCapexText">扣除擴容避險之實際 CAPEX</p>
-                </div>
-
-                <div class="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 relative overflow-hidden">
-                    <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-amber-500/10 rounded-full blur-xl"></div>
-                    <p class="text-xs text-slate-400 font-medium">10 年累計淨收益</p>
-                    <p class="text-2xl font-black text-amber-400 mt-1" id="kpi10YrNetProfit">NT$ 0</p>
-                    <p class="text-[11px] text-slate-500 mt-1">已扣除初始投資與擴容省費</p>
+                <div class="bg-slate-900/90 border border-teal-500/40 rounded-2xl p-4 relative overflow-hidden bg-gradient-to-br from-slate-900 to-teal-950/30">
+                    <span class="text-xs text-teal-400 font-bold">方案 B：ZEROVA 充儲一體 (含 BESS+DLM)</span>
+                    <p class="text-3xl font-black text-teal-300 mt-1" id="kpiB_Payback">3.2 年回本</p>
+                    <p class="text-[11px] text-teal-400/80 mt-1" id="kpiB_AnnualBenefit">年總綜合效益：NT$ 1,980,000</p>
                 </div>
             </div>
 
-            <!-- 收益組成圓餅圖分析卡片 -->
+            <!-- 收益來源與台電節省結構 -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
                 <h3 class="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-teal-400"></span> 充儲一體三大收益維度組成分析 (每年)
+                    <span class="w-2 h-2 rounded-full bg-teal-400"></span> 充儲一體方案（方案 B）年度收益拆解
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                    <div class="h-56 relative flex items-center justify-center">
+                    <div class="h-52 relative flex items-center justify-center">
                         <canvas id="revenuePieChart"></canvas>
                     </div>
-                    <div class="space-y-3 text-xs">
+                    <div class="space-y-2.5 text-xs">
                         <div class="flex justify-between items-center p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
-                            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-teal-500"></span> 充電服務費淨毛利:</span>
+                            <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-teal-500"></span> 充電賣電淨毛利:</span>
                             <span class="font-bold text-white" id="valChargingProfit">NT$ 0</span>
                         </div>
                         <div class="flex justify-between items-center p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
-                            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> 降約基本電費節省:</span>
+                            <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 降約基本電費節省:</span>
                             <span class="font-bold text-white" id="valCapacitySavings">NT$ 0</span>
                         </div>
                         <div class="flex justify-between items-center p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
-                            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-amber-500"></span> 免除超約罰款效益:</span>
+                            <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 免除超約罰款效益:</span>
                             <span class="font-bold text-white" id="valPenaltyAvoided">NT$ 0</span>
                         </div>
                         <div class="flex justify-between items-center p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
-                            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-cyan-500"></span> 時間電價移轉套利:</span>
+                            <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-cyan-500"></span> 尖離峰時間電價套利:</span>
                             <span class="font-bold text-white" id="valTouArbitrage">NT$ 0</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 10 年期累積現金流折線圖 -->
+            <!-- 10 年期累積現金流曲線比較圖 -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
                 <h3 class="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span> 10 年期累積淨現金流與損益兩平點 (Breakeven Curve)
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span> 10 年期回收曲線對比 (無儲能 vs. ZEROVA 充儲一體)
                 </h3>
-                <div class="h-64 relative">
+                <div class="h-60 relative">
                     <canvas id="cashflowLineChart"></canvas>
                 </div>
+            </div>
+
+            <!-- 步驟 4：台電規範與計算依據說明 -->
+            <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 text-xs text-slate-400 space-y-1">
+                <p class="font-bold text-slate-300 mb-1">⚖️ 4. 台電規範與試算參數對齊依據：</p>
+                <p>• <b>基本電費</b>：依台電高壓/特高壓三段式費率，夏月 (6-9月) 為 NT$ 223.6 /kW/月，非夏月為 NT$ 166.9 /kW/月。</p>
+                <p>• <b>超約罰金</b>：依台電《營業規則》，超約 10% 以內按基本電費 2 倍計收，超過 10% 部分按 3 倍計收。</p>
+                <p>• <b>時間電價價差</b>：夏月尖離峰價差按 NT$ 6.3 /kWh 試算，非夏月價差按 NT$ 3.5 /kWh 試算 (DoD 90%, RTE 88%)。</p>
             </div>
 
         </div>
 
     </main>
 
-    <!-- 計算核心 JavaScript -->
+    <!-- 計算 logic JavaScript -->
     <script>
         let pieChart = null;
         let lineChart = null;
 
-        function calculateROI() {
-            // 讀取輸入值
+        function calculateAll() {
+            // -------------------------------------------------------------
+            // 步驟 1：充電樁建置成本 (EV CAPEX)
+            // -------------------------------------------------------------
             const gunCount = parseFloat(document.getElementById('gunCount').value) || 0;
-            const dailyKwhPerGun = parseFloat(document.getElementById('dailyKwhPerGun').value) || 0;
+            const gunPower = parseFloat(document.getElementById('gunPower').value) || 0;
+            const totalGunKw = gunCount * gunPower;
+            
+            // 充電樁硬體建置單價估算 (約 6,000 元/kW 包含樁體、施工與拉線)
+            const evCapex = totalGunKw * 6000;
+            
+            document.getElementById('calcTotalGunKw').innerText = `${totalGunKw} kW`;
+            document.getElementById('calcEvCapex').innerText = `NT$ ${Math.round(evCapex).toLocaleString()}`;
+
+            // -------------------------------------------------------------
+            // 步驟 2：單純充電站 (無儲能) 回收效益
+            // -------------------------------------------------------------
+            const dailyTotalKwh = parseFloat(document.getElementById('dailyTotalKwh').value) || 0;
             const chargingPrice = parseFloat(document.getElementById('chargingPrice').value) || 0;
+            const annualKwh = dailyTotalKwh * 365;
 
-            const origContract = parseFloat(document.getElementById('origContract').value) || 0;
-            const targetContract = parseFloat(document.getElementById('targetContract').value) || 0;
-            const overPower = parseFloat(document.getElementById('overPower').value) || 0;
+            // 台電平均購電成本 (假設約 3.8 元/kWh)
+            const avgPowerCost = 3.8;
+            const annualChargingGrossProfit = annualKwh * (chargingPrice - avgPowerCost);
 
+            // 無儲能時，需向台電申請高契約容量 (假設同時係數 0.7)
+            const origContractKw = Math.round(totalGunKw * 0.7);
+            const standaloneCapacityCost = origContractKw * (4 * 223.6 + 8 * 166.9);
+            
+            // 無儲能年度淨效益 = 充電服務毛利 - 高額基本費
+            const standaloneAnnualNetBenefit = annualChargingGrossProfit - standaloneCapacityCost;
+            const standalonePayback = standaloneAnnualNetBenefit > 0 ? (evCapex / standaloneAnnualNetBenefit).toFixed(1) : "無法回本";
+
+            document.getElementById('standalonePayback').innerText = `${standalonePayback} 年`;
+            document.getElementById('kpiA_Payback').innerText = `${standalonePayback} 年回本`;
+            document.getElementById('kpiA_AnnualBenefit').innerText = `年淨效益：NT$ ${Math.round(standaloneAnnualNetBenefit).toLocaleString()}`;
+
+            // -------------------------------------------------------------
+            // 步驟 3：儲能規格推導與充儲一體效益
+            // -------------------------------------------------------------
+            const targetContractKw = parseFloat(document.getElementById('targetContractKw').value) || 0;
             const bessKwh = parseFloat(document.getElementById('bessKwh').value) || 0;
-            const gridCapexSaved = (parseFloat(document.getElementById('gridCapexSaved').value) || 0) * 10000;
-            const totalCapex = (parseFloat(document.getElementById('totalCapex').value) || 0) * 10000;
+            const bessPricePerKwh = parseFloat(document.getElementById('bessPricePerKwh').value) || 0;
+            const avoidedGridCapex = (parseFloat(document.getElementById('avoidedGridCapex').value) || 0) * 10000;
 
-            // 1. 充電服務營收精算 (假設平均購電成本為 3.8 元/kWh)
-            const annualChargingKwh = gunCount * dailyKwhPerGun * 365;
-            const avgPowerCost = 3.8; 
-            const annualChargingProfit = annualChargingKwh * (chargingPrice - avgPowerCost);
+            // 自動推導提示文字
+            const recBessKw = Math.max(50, origContractKw - targetContractKw);
+            const recBessKwh = recBessKw * 2;
+            document.getElementById('bessRecommendText').innerHTML = 
+                `基於全站 ${totalGunKw}kW 功率，建議配置 <b>${recBessKw}kW / ${recBessKwh}kWh</b> 儲能櫃，可將契約容量從 ${origContractKw}kW 降至 ${targetContractKw}kW。`;
 
-            // 2. 基本電費節省 (台電高壓費率: 夏月 4 個月 223.6 元/kW，非夏月 8 個月 166.9 元/kW)
-            const contractDiff = Math.max(0, origContract - targetContract);
-            const annualCapacitySavings = contractDiff * (4 * 223.6 + 8 * 166.9);
+            // 儲能 CAPEX 與充儲總 CAPEX
+            const bessCapex = bessKwh * bessPricePerKwh;
+            const totalIntegratedCapex = Math.max(0, (evCapex + bessCapex) - avoidedGridCapex);
 
-            // 3. 超約罰款免除 (台電 2~3 倍超約罰金精算估算)
-            const annualPenaltyAvoided = overPower * (223.6 * 2 * 4 + 166.9 * 2 * 8) * 0.5;
+            // 收益 1：降約省下的基本電費
+            const capacitySavedKw = Math.max(0, origContractKw - targetContractKw);
+            const annualCapacitySavings = capacitySavedKw * (4 * 223.6 + 8 * 166.9);
 
-            // 4. 儲能時間電價套利 (DoD 90%, RTE 88%, 夏月價差 6.3元/度 120天, 非夏月價差 3.5元/度 245天)
+            // 收益 2：免除超約罰款 (假設 Peak Shaving 成功防護 150kW 突發超約)
+            const avoidedOverKw = Math.round(totalGunKw * 0.2);
+            const annualPenaltyAvoided = avoidedOverKw * (223.6 * 2 * 4 + 166.9 * 2 * 8) * 0.5;
+
+            // 收益 3：時間電價套利 (DoD 90%, RTE 88%)
             const dailyBessDischarge = bessKwh * 0.9 * 0.88;
-            const summerTouSavings = dailyBessDischarge * 6.3 * 120;
-            const nonSummerTouSavings = dailyBessDischarge * 3.5 * 245;
-            const annualTouArbitrage = summerTouSavings + nonSummerTouSavings;
+            const annualTouArbitrage = (dailyBessDischarge * 6.3 * 120) + (dailyBessDischarge * 3.5 * 245);
 
-            // 總首年效益
-            const totalAnnualBenefit = annualChargingProfit + annualCapacitySavings + annualPenaltyAvoided + annualTouArbitrage;
+            // 充儲方案年度總效益
+            const totalIntegratedAnnualBenefit = annualChargingGrossProfit + annualCapacitySavings + annualPenaltyAvoided + annualTouArbitrage;
+            const integratedPayback = totalIntegratedAnnualBenefit > 0 ? (totalIntegratedCapex / totalIntegratedAnnualBenefit).toFixed(1) : "無法回本";
 
-            // 實際淨 CAPEX (總 CAPEX - 免除擴容工程費用)
-            const netCapex = Math.max(0, totalCapex - gridCapexSaved);
+            document.getElementById('kpiB_Payback').innerText = `${integratedPayback} 年回本`;
+            document.getElementById('kpiB_AnnualBenefit').innerText = `年總綜合效益：NT$ ${Math.round(totalIntegratedAnnualBenefit).toLocaleString()}`;
 
-            // 動態回收年限
-            const paybackYears = totalAnnualBenefit > 0 ? (netCapex / totalAnnualBenefit).toFixed(2) : "N/A";
-
-            // 10 年累計淨收益
-            const tenYearNetProfit = (totalAnnualBenefit * 10) - netCapex;
-
-            // 更新 UI 數據卡片
-            document.getElementById('kpiAnnualRevenue').innerText = `NT$ ${Math.round(totalAnnualBenefit).toLocaleString()}`;
-            document.getElementById('kpiPaybackYears').innerText = `${paybackYears} 年`;
-            document.getElementById('kpiNetCapexText').innerText = `淨 CAPEX: NT$ ${(netCapex/10000).toFixed(1)} 萬 (已扣擴容避險)`;
-            document.getElementById('kpi10YrNetProfit').innerText = `NT$ ${Math.round(tenYearNetProfit).toLocaleString()}`;
-
-            // 更新圓餅圖右側列表
-            document.getElementById('valChargingProfit').innerText = `NT$ ${Math.round(annualChargingProfit).toLocaleString()}`;
+            // 更新圓餅圖右側細節
+            document.getElementById('valChargingProfit').innerText = `NT$ ${Math.round(annualChargingGrossProfit).toLocaleString()}`;
             document.getElementById('valCapacitySavings').innerText = `NT$ ${Math.round(annualCapacitySavings).toLocaleString()}`;
             document.getElementById('valPenaltyAvoided').innerText = `NT$ ${Math.round(annualPenaltyAvoided).toLocaleString()}`;
             document.getElementById('valTouArbitrage').innerText = `NT$ ${Math.round(annualTouArbitrage).toLocaleString()}`;
 
-            // 渲染/更新圖表
-            renderPieChart(annualChargingProfit, annualCapacitySavings, annualPenaltyAvoided, annualTouArbitrage);
-            renderLineChart(netCapex, totalAnnualBenefit);
+            // 繪製與更新圖表
+            renderPieChart(annualChargingGrossProfit, annualCapacitySavings, annualPenaltyAvoided, annualTouArbitrage);
+            renderLineChart(evCapex, standaloneAnnualNetBenefit, totalIntegratedCapex, totalIntegratedAnnualBenefit);
         }
 
         function renderPieChart(charging, capacity, penalty, tou) {
@@ -299,7 +338,7 @@
             pieChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['充電服務毛利', '降基本電費', '免超約罰款', '時間電價套利'],
+                    labels: ['充電賣電毛利', '降基本電費', '免超約罰款', '尖離峰套利'],
                     datasets: [{
                         data: [charging, capacity, penalty, tou],
                         backgroundColor: ['#00A896', '#10b981', '#f59e0b', '#06b6d4'],
@@ -315,14 +354,18 @@
             });
         }
 
-        function renderLineChart(netCapex, annualBenefit) {
+        function renderLineChart(capexA, benefitA, capexB, benefitB) {
             const ctx = document.getElementById('cashflowLineChart').getContext('2d');
             if (lineChart) lineChart.destroy();
 
             const labels = ['建置期', '第1年', '第2年', '第3年', '第4年', '第5年', '第6年', '第7年', '第8年', '第9年', '第10年'];
-            const cashFlowData = [-netCapex];
+            
+            const cashFlowA = [-capexA];
+            const cashFlowB = [-capexB];
+
             for (let i = 1; i <= 10; i++) {
-                cashFlowData.push(-netCapex + (annualBenefit * i));
+                cashFlowA.push(-capexA + (benefitA * i));
+                cashFlowB.push(-capexB + (benefitB * i));
             }
 
             lineChart = new Chart(ctx, {
@@ -331,22 +374,20 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: '累積淨現金流 (TWD)',
-                            data: cashFlowData,
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            label: '方案 B：ZEROVA 充儲一體 (TWD)',
+                            data: cashFlowB,
+                            borderColor: '#00A896',
+                            backgroundColor: 'rgba(0, 168, 150, 0.1)',
                             fill: true,
-                            tension: 0.3,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#10b981'
+                            tension: 0.3
                         },
                         {
-                            label: '損益兩平基準線 ($0)',
-                            data: Array(11).fill(0),
-                            borderColor: '#ef4444',
-                            borderDash: [5, 5],
-                            pointRadius: 0,
-                            fill: false
+                            label: '方案 A：單純充電站 (TWD)',
+                            data: cashFlowA,
+                            borderColor: '#64748b',
+                            borderDash: [4, 4],
+                            fill: false,
+                            tension: 0.3
                         }
                     ]
                 },
@@ -364,13 +405,13 @@
             });
         }
 
-        // 綁定所有輸入欄位事件
+        // 監聽所有輸入框
         document.querySelectorAll('input').forEach(input => {
-            input.addEventListener('input', calculateROI);
+            input.addEventListener('input', calculateAll);
         });
 
-        // 初始化計算
-        window.onload = calculateROI;
+        // 初始化觸發
+        window.onload = calculateAll;
     </script>
 </body>
 </html>
