@@ -1,8 +1,8 @@
 /**
- * ZEROVA EV + BESS ROI 核心試算引擎 (純演算法，無 DOM 操作)
+ * ZEROVA EV + BESS ROI 核心試算引擎 (三區塊版)
  */
 const ROIEngine = {
-    // 1. 台電費率與基礎常數
+    // 1. 台電費率與基礎常數 (以電動車專用電價為主)
     TARIFFS: {
         hv_ev: { name: '高壓專用電價', discount: 0.95 },
         lv_ev: { name: '低壓專用電價', discount: 1.00 }
@@ -10,43 +10,44 @@ const ROIEngine = {
     RATES: {
         basicSummer: 47.20,      // 夏月經常契約基本費 (元/kW/月)
         basicNonSummer: 34.60,   // 非夏月經常契約基本費 (元/kW/月)
+        
+        // 時間電價 (未折扣前原價)
+        peakSummer: 9.34,        // 夏月尖峰
+        offPeakSummer: 2.29,     // 夏月離峰
+        peakNonSummer: 9.10,     // 非夏月尖峰
+        offPeakNonSummer: 2.18,  // 非夏月離峰
+
         avgPowerCost: 3.8,       // 預設台電平均購電成本 (元/kWh)
         evCapexRate: 6000,       // 充電樁完工建置單價 (元/kW)
-        bessCapexRate: 14000,    // 儲能設備建置單價 (元/kWh)
-        emsCost: 300000,         // EMS 軟硬體費用 (元)
+        emsCost: 300000,         // EMS 系統費用 (元)
         auxPowerKw: 20           // 輔電系統預留容量 (kW)
     },
 
     /**
-     * 計算第一區塊：單純充電站 (Baseline)
+     * 第一區塊：單純充電站 (Baseline)
      */
     calcStandalone(inputs) {
         const { tariffType, gunCount, gunPower, dailyKwh, chargingPrice } = inputs;
         
-        // 全站充電總功率
         const totalPowerKw = gunCount * gunPower;
-        
-        // 建議契約容量 (無儲能：全功率輸出 + 輔電預留 20kW)
         const auxPowerKw = this.RATES.auxPowerKw;
-        const recContractKw = totalPowerKw + auxPowerKw;
         
-        // 充電樁建置 CAPEX (總功率 * 6,000 元/kW)
+        // 建議契約容量 (無儲能：全功率輸出 + 輔電)
+        const recContractKw = totalPowerKw + auxPowerKw;
         const evCapex = totalPowerKw * this.RATES.evCapexRate;
 
-        // 台電折算費率 (按高壓專用電價 95% 折扣)
+        // 折算費率 (高壓 95%)
         const discount = this.TARIFFS[tariffType]?.discount || 0.95;
         const basicSummer = this.RATES.basicSummer * discount;
         const basicNonSummer = this.RATES.basicNonSummer * discount;
 
-        // 充電賣電年毛利
+        // 賣電毛利
         const annualKwh = dailyKwh * 365;
         const annualChargingProfit = annualKwh * (chargingPrice - this.RATES.avgPowerCost);
 
-        // 無儲能下的年度台電基本電費支出 (4個月夏月 + 8個月非夏月)
+        // 基本電費支出
         const annualCapacityCost = recContractKw * (4 * basicSummer + 8 * basicNonSummer);
         const annualNetBenefit = annualChargingProfit - annualCapacityCost;
-
-        // 回收年限
         const paybackYears = annualNetBenefit > 0 ? (evCapex / annualNetBenefit).toFixed(1) : "無法回本";
 
         return {
@@ -58,26 +59,24 @@ const ROIEngine = {
             annualCapacityCost,
             annualNetBenefit,
             paybackYears,
+            discount,
             basicSummer,
             basicNonSummer
         };
     },
 
     /**
-     * 計算第二區塊：充儲一體化 (BESS + DLM)
+     * 第二與第三區塊：充儲一體化 (BESS + DLM + TOU)
      */
     calcIntegrated(inputs, standaloneResult) {
         const {
-            enableBess, targetContractKw, bessKw, bessKwh,
-            chkAvoidCapex, chkCapacitySavings, chkTouArbitrage, chkPenaltyAvoided
+            enableBess, targetContractKw, bessKw, bessKwh, bessTotalCost, chkAvoidCapex,
+            enableDLM, enableTOU
         } = inputs;
 
-        // 未勾選儲能時，傳回與第一區塊相同數據
         if (!enableBess) {
             const cashFlowA = [-standaloneResult.evCapex];
-            for (let i = 1; i <= 10; i++) {
-                cashFlowA.push(-standaloneResult.evCapex + (standaloneResult.annualNetBenefit * i));
-            }
+            for (let i = 1; i <= 10; i++) cashFlowA.push(-standaloneResult.evCapex + (standaloneResult.annualNetBenefit * i));
             return {
                 enableBess: false,
                 totalCapex: standaloneResult.evCapex,
@@ -85,37 +84,51 @@ const ROIEngine = {
                 paybackYears: standaloneResult.paybackYears,
                 breakdown: { chargingProfit: standaloneResult.annualChargingProfit, capacitySavings: 0, touArbitrage: 0, penaltyAvoided: 0 },
                 cashFlowA,
-                cashFlowB: cashFlowA
+                cashFlowB: cashFlowA,
+                suggestedContractKw: standaloneResult.recContractKw
             };
         }
 
-        const { totalPowerKw, recContractKw, evCapex, annualChargingProfit, basicSummer, basicNonSummer } = standaloneResult;
+        const sr = standaloneResult;
 
-        // 高壓擴容工程避險費用 (約 150 萬元)
+        // 計算最佳建議契約容量 (供 UI 提示)
+        // 若啟用 DLM：充電樁負載限縮為 60%
+        const effectiveEvPower = enableDLM ? (sr.totalPowerKw * 0.6) : sr.totalPowerKw;
+        // 建議值 = (有效充電負載 - 儲能放電功率 + 輔電)
+        const suggestedContractKw = Math.max(50, Math.round(effectiveEvPower - bessKw + sr.auxPowerKw));
+
+        // CAPEX 計算 (充電樁 + 儲能總價 + EMS - 擴容避險)
         const avoidedCapexVal = chkAvoidCapex ? 1500000 : 0;
-        const bessCost = bessKwh * this.RATES.bessCapexRate;
-        const totalCapex = Math.max(0, (evCapex + bessCost + this.RATES.emsCost) - avoidedCapexVal);
+        const totalCapex = Math.max(0, (sr.evCapex + bessTotalCost + this.RATES.emsCost) - avoidedCapexVal);
 
-        // 1. 降低基本電費節省
-        const capacitySavedKw = Math.max(0, recContractKw - targetContractKw);
-        const valCapacitySavings = chkCapacitySavings ? capacitySavedKw * (4 * basicSummer + 8 * basicNonSummer) : 0;
+        // 效益 1：降低基本電費節省
+        const capacitySavedKw = Math.max(0, sr.recContractKw - targetContractKw);
+        const valCapacitySavings = capacitySavedKw * (4 * sr.basicSummer + 8 * sr.basicNonSummer);
 
-        // 2. 尖離峰時間電價套利 (DoD 90%, RTE 88%)
-        const dailyBessDischarge = bessKwh * 0.9 * 0.88;
-        const valTouArbitrage = chkTouArbitrage ? ((dailyBessDischarge * 7.0 * 120) + (dailyBessDischarge * 3.8 * 245)) : 0;
+        // 效益 2：時間電價套利 (若開啟 TOU)
+        let valTouArbitrage = 0;
+        if (enableTOU) {
+            const dailyBessDischarge = bessKwh * 0.9 * 0.88; // DoD 90%, RTE 88%
+            const summerDiff = (this.RATES.peakSummer - this.RATES.offPeakSummer) * sr.discount;
+            const nonSummerDiff = (this.RATES.peakNonSummer - this.RATES.offPeakNonSummer) * sr.discount;
+            valTouArbitrage = (dailyBessDischarge * summerDiff * 122) + (dailyBessDischarge * nonSummerDiff * 243);
+        }
 
-        // 3. 超約罰款規避價值 (預設防護 15% 突發尖峰超約)
-        const valPenaltyAvoided = chkPenaltyAvoided ? (totalPowerKw * 0.15) * (basicSummer * 2 * 4 + basicNonSummer * 2 * 8) : 0;
+        // 效益 3：防超約罰款規避價值 (若開啟 DLM，預設擋下 15% 的突發超約)
+        let valPenaltyAvoided = 0;
+        if (enableDLM) {
+            valPenaltyAvoided = (sr.totalPowerKw * 0.15) * (sr.basicSummer * 2 * 4 + sr.basicNonSummer * 2 * 8);
+        }
 
-        // 充儲方案年度總綜合效益
-        const annualNetBenefit = annualChargingProfit + valCapacitySavings + valTouArbitrage + valPenaltyAvoided;
+        // 總綜合效益與回收期
+        const annualNetBenefit = sr.annualChargingProfit + valCapacitySavings + valTouArbitrage + valPenaltyAvoided;
         const paybackYears = annualNetBenefit > 0 ? (totalCapex / annualNetBenefit).toFixed(1) : "無法回本";
 
-        // 生成 10 年期現金流對比陣列
-        const cashFlowA = [-evCapex];
+        // 現金流陣列
+        const cashFlowA = [-sr.evCapex];
         const cashFlowB = [-totalCapex];
         for (let i = 1; i <= 10; i++) {
-            cashFlowA.push(-evCapex + (standaloneResult.annualNetBenefit * i));
+            cashFlowA.push(-sr.evCapex + (sr.annualNetBenefit * i));
             cashFlowB.push(-totalCapex + (annualNetBenefit * i));
         }
 
@@ -124,8 +137,9 @@ const ROIEngine = {
             totalCapex,
             annualNetBenefit,
             paybackYears,
+            suggestedContractKw,
             breakdown: {
-                chargingProfit: annualChargingProfit,
+                chargingProfit: sr.annualChargingProfit,
                 capacitySavings: valCapacitySavings,
                 touArbitrage: valTouArbitrage,
                 penaltyAvoided: valPenaltyAvoided
@@ -135,9 +149,6 @@ const ROIEngine = {
         };
     },
 
-    /**
-     * 主進入點
-     */
     run(inputs) {
         const standalone = this.calcStandalone(inputs);
         const integrated = this.calcIntegrated(inputs, standalone);
