@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZEROVA 馳諾瓦 | EV 充儲一體兩階段 ROI 提案試算工具</title>
+    <title>ZEROVA 馳諾瓦 | EV 充儲一體兩階段 ROI 簡報工具</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入核心演算法引擎 -->
+    <script src="roiEngine.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -121,8 +123,8 @@
                             <span class="text-white font-bold" id="b1_totalPower">720 kW</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-slate-400">建議契約容量 (無儲能)：</span>
-                            <span class="text-teal-300 font-bold" id="b1_recContract">504 kW</span>
+                            <span class="text-slate-400">建議契約容量 (全功率+輔電20kW)：</span>
+                            <span class="text-teal-300 font-bold" id="b1_recContract">740 kW</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-slate-400">充電樁建置成本 (CAPEX)：</span>
@@ -130,7 +132,7 @@
                         </div>
                         <div class="flex justify-between pt-1 border-t border-slate-700/50">
                             <span class="text-slate-300 font-semibold">單純充電站回收年限：</span>
-                            <span class="text-amber-400 font-black text-sm" id="b1_payback">6.8 年</span>
+                            <span class="text-amber-400 font-black text-sm" id="b1_payback">4.2 年</span>
                         </div>
                     </div>
                 </div>
@@ -173,7 +175,7 @@
                         
                         <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
                             <input type="checkbox" id="chkAvoidCapex" class="rounded text-teal-500 focus:ring-0" checked>
-                            <span>1. 案廠高壓擴容工程費節省 (約 NT$ 150萬)</span>
+                            <span>1. 案場高壓擴容工程費節省 (約 NT$ 150萬)</span>
                         </label>
                         
                         <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
@@ -203,14 +205,14 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4">
                     <span class="text-xs text-slate-400">方案 A：單純充電站 (無儲能)</span>
-                    <p class="text-2xl font-black text-slate-300 mt-1" id="resA_Payback">6.8 年回本</p>
-                    <p class="text-[11px] text-slate-500 mt-1" id="resA_NetBenefit">年淨效益：NT$ 635,000</p>
+                    <p class="text-2xl font-black text-slate-300 mt-1" id="resA_Payback">4.2 年回本</p>
+                    <p class="text-[11px] text-slate-500 mt-1" id="resA_NetBenefit">年淨收益：NT$ 1,020,000</p>
                 </div>
 
                 <div class="bg-slate-900/90 border border-teal-500/40 rounded-2xl p-4 bg-gradient-to-br from-slate-900 to-teal-950/30">
                     <span class="text-xs text-teal-400 font-bold">方案 B：ZEROVA 充儲一體 (含 BESS)</span>
-                    <p class="text-3xl font-black text-teal-300 mt-1" id="resB_Payback">3.1 年回本</p>
-                    <p class="text-[11px] text-teal-400/80 mt-1" id="resB_NetBenefit">年綜合效益：NT$ 1,920,000</p>
+                    <p class="text-3xl font-black text-teal-300 mt-1" id="resB_Payback">2.9 年回本</p>
+                    <p class="text-[11px] text-teal-400/80 mt-1" id="resB_NetBenefit">年綜合效益：NT$ 2,280,000</p>
                 </div>
             </div>
 
@@ -253,120 +255,74 @@
 
     </main>
 
-    <!-- 計算 Logic -->
+    <!-- UI 控制邏輯 Script -->
     <script>
         let lineChart = null;
 
-        function calculate() {
-            // -------------------------------------------------------------
-            // 第一區塊計算 (單純充電站)
-            // -------------------------------------------------------------
-            const tariffType = document.getElementById('tariffType').value;
-            const gunCount = parseFloat(document.getElementById('gunCount').value) || 0;
-            const gunPower = parseFloat(document.getElementById('gunPower').value) || 0;
-            const dailyKwh = parseFloat(document.getElementById('dailyKwh').value) || 0;
-            const chargingPrice = parseFloat(document.getElementById('chargingPrice').value) || 0;
+        // 1. 從 DOM 讀取 UI 輸入值
+        function getUIInputs() {
+            return {
+                tariffType: document.getElementById('tariffType').value,
+                gunCount: parseFloat(document.getElementById('gunCount').value) || 0,
+                gunPower: parseFloat(document.getElementById('gunPower').value) || 0,
+                dailyKwh: parseFloat(document.getElementById('dailyKwh').value) || 0,
+                chargingPrice: parseFloat(document.getElementById('chargingPrice').value) || 0,
+                
+                enableBess: document.getElementById('enableBess').checked,
+                targetContractKw: parseFloat(document.getElementById('targetContractKw').value) || 0,
+                bessKw: parseFloat(document.getElementById('bessKw').value) || 0,
+                bessKwh: parseFloat(document.getElementById('bessKwh').value) || 0,
 
-            const totalPowerKw = gunCount * gunPower;
-            const b1_recContractKw = Math.round(totalPowerKw * 0.7); // 建議契約容量 (同時係數 0.7)
-            const b1_capex = totalPowerKw * 6000; // 充電樁建置成本估算 (6000元/kW)
+                chkAvoidCapex: document.getElementById('chkAvoidCapex').checked,
+                chkCapacitySavings: document.getElementById('chkCapacitySavings').checked,
+                chkTouArbitrage: document.getElementById('chkTouArbitrage').checked,
+                chkPenaltyAvoided: document.getElementById('chkPenaltyAvoided').checked
+            };
+        }
 
-            // 台電費率設定 (依圖示：高壓享 95% 折扣)
-            const discount = (tariffType === 'hv_ev') ? 0.95 : 1.0;
-            const basicRateSummer = 47.20 * discount;
-            const basicRateNonSummer = 34.60 * discount;
-            const avgPowerCost = 3.8; // 假設平均購電成本
+        // 2. 渲染 UI (純顯示，不包含算式邏輯)
+        function renderUI(result) {
+            const { standalone, integrated } = result;
 
-            // 1. 充電服務淨毛利
-            const annualKwh = dailyKwh * 365;
-            const annualChargingProfit = annualKwh * (chargingPrice - avgPowerCost);
+            // ----- 1. 渲染第一區塊 (無儲能) -----
+            document.getElementById('b1_totalPower').innerText = `${standalone.totalPowerKw} kW`;
+            document.getElementById('b1_recContract').innerText = `${standalone.recContractKw} kW`;
+            document.getElementById('b1_capex').innerText = `NT$ ${Math.round(standalone.evCapex).toLocaleString()}`;
+            document.getElementById('b1_payback').innerText = `${standalone.paybackYears} 年`;
 
-            // 2. 單純充電站台電基本電費 (無儲能)
-            const b1_annualCapacityCost = b1_recContractKw * (4 * basicRateSummer + 8 * basicRateNonSummer);
-            const b1_annualNetBenefit = annualChargingProfit - b1_annualCapacityCost;
-            const b1_payback = b1_annualNetBenefit > 0 ? (b1_capex / b1_annualNetBenefit).toFixed(1) : "無法回本";
+            document.getElementById('resA_Payback').innerText = `${standalone.paybackYears} 年回本`;
+            document.getElementById('resA_NetBenefit').innerText = `年淨收益：NT$ ${Math.round(standalone.annualNetBenefit).toLocaleString()}`;
 
-            // 更新第一區塊 UI
-            document.getElementById('b1_totalPower').innerText = `${totalPowerKw} kW`;
-            document.getElementById('b1_recContract').innerText = `${b1_recContractKw} kW`;
-            document.getElementById('b1_capex').innerText = `NT$ ${Math.round(b1_capex).toLocaleString()}`;
-            document.getElementById('b1_payback').innerText = `${b1_payback} 年`;
-
-            document.getElementById('resA_Payback').innerText = `${b1_payback} 年回本`;
-            document.getElementById('resA_NetBenefit').innerText = `年淨收益：NT$ ${Math.round(b1_annualNetBenefit).toLocaleString()}`;
-
-            // -------------------------------------------------------------
-            // 第二區塊計算 (加入儲能 BESS)
-            // -------------------------------------------------------------
-            const enableBess = document.getElementById('enableBess').checked;
+            // ----- 2. 渲染第二區塊 (充儲一體) -----
             const bessSection = document.getElementById('bessSection');
-
-            if (!enableBess) {
+            if (!integrated.enableBess) {
                 bessSection.style.opacity = '0.4';
                 bessSection.style.pointerEvents = 'none';
-                renderLineChart(b1_capex, b1_annualNetBenefit, b1_capex, b1_annualNetBenefit);
+                renderLineChart(integrated.cashFlowA, integrated.cashFlowA);
                 return;
             } else {
                 bessSection.style.opacity = '1.0';
                 bessSection.style.pointerEvents = 'auto';
             }
 
-            const targetContractKw = parseFloat(document.getElementById('targetContractKw').value) || 0;
-            const bessKw = parseFloat(document.getElementById('bessKw').value) || 0;
-            const bessKwh = parseFloat(document.getElementById('bessKwh').value) || 0;
+            document.getElementById('resB_Payback').innerText = `${integrated.paybackYears} 年回本`;
+            document.getElementById('resB_NetBenefit').innerText = `年綜合效益：NT$ ${Math.round(integrated.annualNetBenefit).toLocaleString()}`;
 
-            // 勾選效益項目
-            const chkAvoidCapex = document.getElementById('chkAvoidCapex').checked;
-            const chkCapacitySavings = document.getElementById('chkCapacitySavings').checked;
-            const chkTouArbitrage = document.getElementById('chkTouArbitrage').checked;
-            const chkPenaltyAvoided = document.getElementById('chkPenaltyAvoided').checked;
+            const b = integrated.breakdown;
+            document.getElementById('valChargingProfit').innerText = `NT$ ${Math.round(b.chargingProfit).toLocaleString()}`;
+            document.getElementById('valCapacitySavings').innerText = `NT$ ${Math.round(b.capacitySavings).toLocaleString()}`;
+            document.getElementById('valTouArbitrage').innerText = `NT$ ${Math.round(b.touArbitrage).toLocaleString()}`;
+            document.getElementById('valPenaltyAvoided').innerText = `NT$ ${Math.round(b.penaltyAvoided).toLocaleString()}`;
 
-            // 常數設定
-            const bessCost = bessKwh * 14000; // 儲能設備費 (1.4萬/kWh)
-            const emsCost = 300000; // EMS 系統費
-            const avoidedCapexVal = chkAvoidCapex ? 1500000 : 0; // 節省高壓擴容工程費
-
-            // 充儲一體總 CAPEX
-            const b2_totalCapex = Math.max(0, (b1_capex + bessCost + emsCost) - avoidedCapexVal);
-
-            // 分項效益算式
-            const capacitySavedKw = Math.max(0, b1_recContractKw - targetContractKw);
-            const valCapacitySavings = chkCapacitySavings ? capacitySavedKw * (4 * basicRateSummer + 8 * basicRateNonSummer) : 0;
-
-            const dailyBessDischarge = bessKwh * 0.9 * 0.88; // DoD 90%, RTE 88%
-            const valTouArbitrage = chkTouArbitrage ? ((dailyBessDischarge * 7.0 * 120) + (dailyBessDischarge * 3.8 * 245)) : 0;
-
-            const valPenaltyAvoided = chkPenaltyAvoided ? (totalPowerKw * 0.15) * (basicRateSummer * 2 * 4 + basicRateNonSummer * 2 * 8) : 0;
-
-            // 充儲方案年度總效益
-            const b2_annualNetBenefit = annualChargingProfit + valCapacitySavings + valTouArbitrage + valPenaltyAvoided;
-            const b2_payback = b2_annualNetBenefit > 0 ? (b2_totalCapex / b2_annualNetBenefit).toFixed(1) : "無法回本";
-
-            // 更新第二區塊 UI
-            document.getElementById('resB_Payback').innerText = `${b2_payback} 年回本`;
-            document.getElementById('resB_NetBenefit').innerText = `年綜合效益：NT$ ${Math.round(b2_annualNetBenefit).toLocaleString()}`;
-
-            document.getElementById('valChargingProfit').innerText = `NT$ ${Math.round(annualChargingProfit).toLocaleString()}`;
-            document.getElementById('valCapacitySavings').innerText = `NT$ ${Math.round(valCapacitySavings).toLocaleString()}`;
-            document.getElementById('valTouArbitrage').innerText = `NT$ ${Math.round(valTouArbitrage).toLocaleString()}`;
-            document.getElementById('valPenaltyAvoided').innerText = `NT$ ${Math.round(valPenaltyAvoided).toLocaleString()}`;
-
-            // 繪製對比折線圖
-            renderLineChart(b1_capex, b1_annualNetBenefit, b2_totalCapex, b2_annualNetBenefit);
+            renderLineChart(integrated.cashFlowA, integrated.cashFlowB);
         }
 
-        function renderLineChart(capexA, benefitA, capexB, benefitB) {
+        // 3. 繪製 Chart.js Cashflow 曲線圖
+        function renderLineChart(cashFlowA, cashFlowB) {
             const ctx = document.getElementById('cashflowLineChart').getContext('2d');
             if (lineChart) lineChart.destroy();
 
             const labels = ['建置期', '第1年', '第2年', '第3年', '第4年', '第5年', '第6年', '第7年', '第8年', '第9年', '第10年'];
-            const cashFlowA = [-capexA];
-            const cashFlowB = [-capexB];
-
-            for (let i = 1; i <= 10; i++) {
-                cashFlowA.push(-capexA + (benefitA * i));
-                cashFlowB.push(-capexB + (benefitB * i));
-            }
 
             lineChart = new Chart(ctx, {
                 type: 'line',
@@ -403,14 +359,21 @@
             });
         }
 
-        // 綁定輸入事件
+        // 4. 事件傳遞核心
+        function onInputChange() {
+            const inputs = getUIInputs();
+            const result = ROIEngine.run(inputs);
+            renderUI(result);
+        }
+
+        // 監聽 UI 所有輸入元件
         document.querySelectorAll('input, select').forEach(elem => {
-            elem.addEventListener('change', calculate);
-            elem.addEventListener('input', calculate);
+            elem.addEventListener('change', onInputChange);
+            elem.addEventListener('input', onInputChange);
         });
 
         // 初始化
-        window.onload = calculate;
+        window.onload = onInputChange;
     </script>
 </body>
 </html>
