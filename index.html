@@ -6,7 +6,8 @@
     <title>ZEROVA 馳諾瓦 | EV 充儲一體三階段 ROI 簡報工具</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="roiEngine.js?v=700"></script>
+    <!-- 更新版號 v=800 以清除快取 -->
+    <script src="roiEngine.js?v=800"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -55,8 +56,6 @@
                         <div><label class="block text-xs text-slate-400 mb-1">單槍功率 (kW)</label><input type="number" id="gunPower" value="180" class="w-full p-2 rounded-lg text-sm"></div>
                         <div><label class="block text-xs text-slate-400 mb-1">建置單價 (元/kW)</label><input type="number" id="evCapexRate" value="6000" class="w-full p-2 rounded-lg text-sm text-amber-100 bg-amber-900/20 border-amber-800/50"></div>
                         <div><label class="block text-xs text-slate-400 mb-1">每日總充電量 (kWh)</label><input type="number" id="dailyKwh" value="600" class="w-full p-2 rounded-lg text-sm"></div>
-                        
-                        <!-- 標籤改回充電服務費 -->
                         <div><label class="block text-xs text-teal-300 mb-1">充電服務費 (元/kWh)</label><input type="number" id="chargingServiceFee" value="3.5" step="0.1" class="w-full p-2 rounded-lg text-sm border-teal-800/50" title="僅輸入每度電純利"></div>
                     </div>
                     <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700/50 space-y-1 text-xs">
@@ -78,7 +77,7 @@
                         <div class="w-10 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
                     </label>
                 </div>
-                <div id="bessSection" class="space-y-4">
+                <div id="bessSection" class="space-y-4 transition-opacity duration-300">
                     <div class="grid grid-cols-2 gap-4">
                         <div><label class="block text-xs text-slate-400 mb-1">儲能功率 (kW)</label><input type="number" id="bessKw" value="200" class="w-full p-2 rounded-lg text-sm"></div>
                         <div><label class="block text-xs text-slate-400 mb-1">儲能容量 (kWh)</label><input type="number" id="bessKwh" value="400" class="w-full p-2 rounded-lg text-sm"></div>
@@ -88,13 +87,10 @@
                     <div>
                         <label class="block text-xs text-slate-400 mb-1">降約後目標契約容量 (kW)</label>
                         <input type="number" id="targetContractKw" value="252" class="w-full p-2 rounded-lg text-sm font-bold">
-                        <p class="text-[11px] text-emerald-400 mt-1 flex items-center gap-1" id="uiHint_SuggestedKw">
-                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"></path></svg>
-                            智慧提示：開啟 DLM 限載與儲能後，建議可降約至 252 kW
+                        <p class="text-[11px] text-emerald-400 mt-1 flex items-center gap-1 min-h-[16px]" id="uiHint_SuggestedKw">
                         </p>
                     </div>
                     
-                    <!-- 新增動態擴容費輸入框 -->
                     <div class="flex items-center justify-between p-2.5 bg-slate-800/60 border border-slate-700/50 rounded-lg">
                         <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
                             <input type="checkbox" id="chkAvoidCapex" class="rounded text-teal-500 focus:ring-0" checked>
@@ -111,7 +107,7 @@
                     <span class="w-6 h-6 rounded-full bg-cyan-500/20 flex justify-center items-center text-xs">3</span>
                     第三區塊：EMS 軟體與智慧調度
                 </h2>
-                <div id="emsSection" class="space-y-3">
+                <div id="emsSection" class="space-y-3 transition-opacity duration-300">
                     <div class="flex items-start gap-3 p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl">
                         <input type="checkbox" id="enableDLM" class="mt-1 rounded text-cyan-500" checked>
                         <div>
@@ -132,7 +128,7 @@
         </div>
 
         <div class="lg:col-span-7 space-y-6">
-            <!-- 上方結果卡片 (含 10 年淨利) -->
+            <!-- 方案卡片 -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
                     <div>
@@ -144,7 +140,8 @@
                         <p class="text-lg font-bold text-slate-300 tracking-wide mt-0.5" id="resA_TenYear">NT$ 0</p>
                     </div>
                 </div>
-                <div class="bg-gradient-to-br from-slate-900 to-teal-950/40 border border-teal-500/40 rounded-2xl p-5 shadow-lg shadow-teal-900/20 flex flex-col justify-between">
+                <!-- 方案 B 卡片，加入 ID 供屏蔽時控制 -->
+                <div id="cardPlanB" class="bg-gradient-to-br from-slate-900 to-teal-950/40 border border-teal-500/40 rounded-2xl p-5 shadow-lg shadow-teal-900/20 flex flex-col justify-between transition-all duration-300">
                     <div>
                         <span class="text-xs text-teal-400 font-bold">方案 B：充儲一體 + EMS</span>
                         <p class="text-4xl font-black text-teal-300 mt-1" id="resB_Payback">2.9 年</p>
@@ -156,7 +153,7 @@
                 </div>
             </div>
 
-            <!-- 收益組成區塊 (加入圓餅圖) -->
+            <!-- 收益組成 -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
                 <h3 class="text-sm font-bold text-slate-200 mb-4">綜合收益組成 (每年)</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
@@ -172,6 +169,7 @@
                 </div>
             </div>
 
+            <!-- 現金流折線圖 -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
                 <h3 class="text-sm font-bold text-slate-200 mb-2">10 年期現金流比較</h3>
                 <div class="h-56 relative"><canvas id="cashflowLineChart"></canvas></div>
@@ -221,7 +219,6 @@
             };
         }
 
-        // 金額格式化工具 (處理紅字負數)
         function formatCurrency(val) {
             if (val < 0) {
                 return "-NT$ " + Math.abs(Math.round(val)).toLocaleString();
@@ -232,8 +229,12 @@
         function formatDisplayStyles(el, val, isPayback = false) {
             if (isPayback) {
                 el.innerText = val;
-                if (val.includes('虧損')) { el.classList.add('text-loss', 'text-2xl'); el.classList.remove('text-3xl', 'text-4xl'); } 
-                else { el.classList.remove('text-loss', 'text-2xl'); }
+                if (val.includes('虧損')) { 
+                    el.classList.add('text-loss', 'text-2xl'); 
+                    el.classList.remove('text-3xl', 'text-4xl'); 
+                } else { 
+                    el.classList.remove('text-loss', 'text-2xl'); 
+                }
             } else {
                 el.innerText = formatCurrency(val);
                 if (val < 0) { el.classList.add('text-loss'); } 
@@ -244,66 +245,89 @@
         function renderUI(result) {
             const { standalone, integrated } = result;
 
+            // 1. 更新第一區塊與方案 A
             document.getElementById('b1_recContract').innerText = `${standalone.recContractKw} kW`;
             document.getElementById('b1_capex').innerText = `NT$ ${Math.round(standalone.evCapex).toLocaleString()}`;
             
             formatDisplayStyles(document.getElementById('resA_Payback'), standalone.paybackYears, true);
             formatDisplayStyles(document.getElementById('resA_TenYear'), standalone.tenYearNetProfit, false);
 
+            // 2. 獲取需要屏蔽的 DOM 元素
             const bessSec = document.getElementById('bessSection');
             const emsSec = document.getElementById('emsSection');
+            const cardPlanB = document.getElementById('cardPlanB');
+            const elResBPayback = document.getElementById('resB_Payback');
+            const elResBTenYear = document.getElementById('resB_TenYear');
+
+            // === 判斷儲能開關狀態 ===
             if (!integrated.enableBess) {
+                // 變暗並取消輸入能力
                 bessSec.style.opacity = '0.4'; bessSec.style.pointerEvents = 'none';
                 emsSec.style.opacity = '0.4'; emsSec.style.pointerEvents = 'none';
-                document.getElementById('enableDLM').checked = false;
-                document.getElementById('enableTOU').checked = false;
-                
-                formatDisplayStyles(document.getElementById('resB_Payback'), standalone.paybackYears, true);
-                formatDisplayStyles(document.getElementById('resB_TenYear'), standalone.tenYearNetProfit, false);
-                
-                renderCharts(integrated.cashFlowA, integrated.cashFlowA, integrated.breakdown);
-                return;
+                // 屏蔽方案 B 卡片
+                cardPlanB.style.opacity = '0.3';
+                elResBPayback.innerText = '未啟用';
+                elResBPayback.classList.remove('text-loss', 'text-2xl');
+                elResBTenYear.innerText = '-';
+                // 清除智慧提示
+                document.getElementById('uiHint_SuggestedKw').innerHTML = '&nbsp;';
             } else {
+                // 恢復原狀
                 bessSec.style.opacity = '1.0'; bessSec.style.pointerEvents = 'auto';
                 emsSec.style.opacity = '1.0'; emsSec.style.pointerEvents = 'auto';
+                cardPlanB.style.opacity = '1.0';
+                
+                formatDisplayStyles(elResBPayback, integrated.paybackYears, true);
+                if (!integrated.paybackYears.includes('虧損')) {
+                    elResBPayback.classList.add('text-4xl'); // 若回本恢復粗大字體
+                }
+                formatDisplayStyles(elResBTenYear, integrated.tenYearNetProfit, false);
+
+                document.getElementById('uiHint_SuggestedKw').innerHTML = `
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"></path></svg>
+                    智慧提示：開啟 DLM 限載與儲能後，建議可降約至 ${integrated.suggestedContractKw} kW`;
             }
 
-            document.getElementById('uiHint_SuggestedKw').innerHTML = `
-                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"></path></svg>
-                智慧提示：開啟 DLM 限載與儲能後，建議可降約至 ${integrated.suggestedContractKw} kW`;
-
-            formatDisplayStyles(document.getElementById('resB_Payback'), integrated.paybackYears, true);
-            formatDisplayStyles(document.getElementById('resB_TenYear'), integrated.tenYearNetProfit, false);
-
+            // 3. 不管開關與否，都將 breakdown 寫入畫面 (若關閉，除了賣電毛利外都是 0)
             const b = integrated.breakdown;
             document.getElementById('valChargingProfit').innerText = formatCurrency(b.chargingProfit);
             document.getElementById('valCapacitySavings').innerText = formatCurrency(b.capacitySavings);
             document.getElementById('valTouArbitrage').innerText = formatCurrency(b.touArbitrage);
             document.getElementById('valPenaltyAvoided').innerText = formatCurrency(b.penaltyAvoided);
 
-            renderCharts(integrated.cashFlowA, integrated.cashFlowB, b);
+            // 4. 繪製圖表並告知是否要顯示方案 B 曲線
+            renderCharts(integrated.cashFlowA, integrated.cashFlowB, b, integrated.enableBess);
         }
 
-        function renderCharts(cashFlowA, cashFlowB, breakdown) {
-            // 1. 折線圖
+        function renderCharts(cashFlowA, cashFlowB, breakdown, showPlanB) {
+            // -- 折線圖 --
             const ctxLine = document.getElementById('cashflowLineChart').getContext('2d');
             if (lineChart) lineChart.destroy();
+            
+            // 如果儲能關閉，則只渲染方案 A 的資料集
+            let lineDatasets = [
+                { label: '方案 A (單純充電)', data: cashFlowA, borderColor: '#64748b', borderDash: [4, 4], fill: false, tension: 0.3 }
+            ];
+            
+            if (showPlanB) {
+                // 如果開啟，將方案 B 放進陣列 (unshift放前面，讓它蓋在 A 上面)
+                lineDatasets.unshift({ label: '方案 B (充儲+EMS)', data: cashFlowB, borderColor: '#00A896', backgroundColor: 'rgba(0,168,150,0.1)', fill: true, tension: 0.3 });
+            }
+
             lineChart = new Chart(ctxLine, {
                 type: 'line',
                 data: {
                     labels: ['建置', 'Y1', 'Y2', 'Y3', 'Y4', 'Y5', 'Y6', 'Y7', 'Y8', 'Y9', 'Y10'],
-                    datasets: [
-                        { label: '方案 B (充儲+EMS)', data: cashFlowB, borderColor: '#00A896', backgroundColor: 'rgba(0,168,150,0.1)', fill: true, tension: 0.3 },
-                        { label: '方案 A (單純充電)', data: cashFlowA, borderColor: '#64748b', borderDash: [4, 4], fill: false, tension: 0.3 }
-                    ]
+                    datasets: lineDatasets
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } }, scales: { x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } }, y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } } } }
             });
 
-            // 2. 圓餅圖 (若皆為負數或0，給予預設顯示以防破圖)
+            // -- 圓餅圖 --
             const ctxPie = document.getElementById('revenuePieChart').getContext('2d');
             if (pieChart) pieChart.destroy();
             
+            // 避免負數破圖，只取大於 0 的值
             const dataValues = [
                 Math.max(0, breakdown.chargingProfit), 
                 Math.max(0, breakdown.capacitySavings), 
@@ -316,6 +340,7 @@
                 data: {
                     labels: ['充電賣電', '降約節省', '時間電價', '規避罰款'],
                     datasets: [{
+                        // 若全為 0 (或未滿條件)，給個基底圖避免不渲染
                         data: dataValues.some(v => v > 0) ? dataValues : [1, 0, 0, 0],
                         backgroundColor: ['#f1f5f9', '#34d399', '#22d3ee', '#fbbf24'],
                         borderWidth: 0,
@@ -325,7 +350,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '70%',
+                    cutout: '75%',
                     plugins: {
                         legend: { position: 'right', labels: { color: '#cbd5e1', font: { size: 11 }, usePointStyle: true, padding: 15 } },
                         tooltip: { callbacks: { label: function(context) { return ' ' + context.label + ': NT$ ' + context.raw.toLocaleString(); } } }
@@ -341,6 +366,7 @@
             renderUI(result);
         }
 
+        // 雙向綁定邏輯
         const elUnitCost = document.getElementById('bessUnitCost');
         const elTotalCost = document.getElementById('bessTotalCost');
         const elBessKwh = document.getElementById('bessKwh');
@@ -366,6 +392,7 @@
             onInputChange();
         });
 
+        // 綁定其餘欄位的 input 與 change 事件
         document.querySelectorAll('input:not(#bessUnitCost):not(#bessTotalCost):not(#bessKwh), select').forEach(elem => {
             if(elem.id !== 'tariffType') {
                 elem.addEventListener('change', onInputChange);
