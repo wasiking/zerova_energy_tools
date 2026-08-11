@@ -6,7 +6,7 @@
     <title>ZEROVA 馳諾瓦 | EV 充儲一體三階段 ROI 簡報工具</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="roiEngine.js?v=600"></script>
+    <script src="roiEngine.js?v=700"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -17,7 +17,7 @@
         body { background-color: #080d16; color: #f1f5f9; font-family: system-ui, -apple-system, sans-serif; }
         input[type="number"], select { background-color: #131d31; border: 1px solid #233248; color: #ffffff; transition: all 0.2s; }
         input[type="number"]:focus, select:focus { border-color: #00A896; outline: none; box-shadow: 0 0 0 2px rgba(0, 168, 150, 0.2); }
-        .text-loss { color: #ef4444 !important; font-size: 1.25rem !important; }
+        .text-loss { color: #ef4444 !important; }
     </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
@@ -55,8 +55,9 @@
                         <div><label class="block text-xs text-slate-400 mb-1">單槍功率 (kW)</label><input type="number" id="gunPower" value="180" class="w-full p-2 rounded-lg text-sm"></div>
                         <div><label class="block text-xs text-slate-400 mb-1">建置單價 (元/kW)</label><input type="number" id="evCapexRate" value="6000" class="w-full p-2 rounded-lg text-sm text-amber-100 bg-amber-900/20 border-amber-800/50"></div>
                         <div><label class="block text-xs text-slate-400 mb-1">每日總充電量 (kWh)</label><input type="number" id="dailyKwh" value="600" class="w-full p-2 rounded-lg text-sm"></div>
-                        <!-- UI 欄位變更為「每度電淨毛利」 -->
-                        <div><label class="block text-xs text-teal-300 mb-1">每度電淨毛利 (元/kWh)</label><input type="number" id="chargingProfitPerKwh" value="3.5" step="0.1" class="w-full p-2 rounded-lg text-sm border-teal-800/50"></div>
+                        
+                        <!-- 標籤改回充電服務費 -->
+                        <div><label class="block text-xs text-teal-300 mb-1">充電服務費 (元/kWh)</label><input type="number" id="chargingServiceFee" value="3.5" step="0.1" class="w-full p-2 rounded-lg text-sm border-teal-800/50" title="僅輸入每度電純利"></div>
                     </div>
                     <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700/50 space-y-1 text-xs">
                         <div class="flex justify-between"><span class="text-slate-400">原契約容量 (全功率+輔電20kW)：</span><span class="text-teal-300 font-bold" id="b1_recContract">740 kW</span></div>
@@ -92,10 +93,15 @@
                             智慧提示：開啟 DLM 限載與儲能後，建議可降約至 252 kW
                         </p>
                     </div>
-                    <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer p-2 bg-slate-800/50 rounded-lg">
-                        <input type="checkbox" id="chkAvoidCapex" class="rounded text-teal-500 focus:ring-0" checked>
-                        扣除案場高壓擴容工程費節省 (約 NT$ 150萬)
-                    </label>
+                    
+                    <!-- 新增動態擴容費輸入框 -->
+                    <div class="flex items-center justify-between p-2.5 bg-slate-800/60 border border-slate-700/50 rounded-lg">
+                        <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                            <input type="checkbox" id="chkAvoidCapex" class="rounded text-teal-500 focus:ring-0" checked>
+                            扣除高壓擴容工程節省 (NT$)
+                        </label>
+                        <input type="number" id="avoidedCapexValue" value="1500000" class="w-28 p-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-teal-300 text-right">
+                    </div>
                 </div>
             </div>
 
@@ -126,46 +132,64 @@
         </div>
 
         <div class="lg:col-span-7 space-y-6">
+            <!-- 上方結果卡片 (含 10 年淨利) -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-                    <span class="text-xs text-slate-400">方案 A：單純充電站 (Baseline)</span>
-                    <p class="text-2xl font-black text-slate-300 mt-1" id="resA_Payback">4.2 年</p>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs text-slate-400">方案 A：單純充電站 (Baseline)</span>
+                        <p class="text-3xl font-black text-slate-300 mt-1" id="resA_Payback">4.2 年</p>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-800">
+                        <span class="text-[11px] text-slate-500 font-semibold">10 年整體淨收益預估</span>
+                        <p class="text-lg font-bold text-slate-300 tracking-wide mt-0.5" id="resA_TenYear">NT$ 0</p>
+                    </div>
                 </div>
-                <div class="bg-gradient-to-br from-slate-900 to-teal-950/30 border border-teal-500/40 rounded-2xl p-4">
-                    <span class="text-xs text-teal-400 font-bold">方案 B：充儲一體 + EMS</span>
-                    <p class="text-3xl font-black text-teal-300 mt-1" id="resB_Payback">2.9 年</p>
+                <div class="bg-gradient-to-br from-slate-900 to-teal-950/40 border border-teal-500/40 rounded-2xl p-5 shadow-lg shadow-teal-900/20 flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs text-teal-400 font-bold">方案 B：充儲一體 + EMS</span>
+                        <p class="text-4xl font-black text-teal-300 mt-1" id="resB_Payback">2.9 年</p>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-teal-800/50">
+                        <span class="text-[11px] text-teal-500/80 font-semibold">10 年整體淨收益預估</span>
+                        <p class="text-xl font-bold text-teal-400 tracking-wide mt-0.5" id="resB_TenYear">NT$ 0</p>
+                    </div>
                 </div>
             </div>
 
+            <!-- 收益組成區塊 (加入圓餅圖) -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <h3 class="text-sm font-bold text-slate-200 mb-4">收益組成 (每年)</h3>
-                <div class="grid grid-cols-2 gap-3 text-xs">
-                    <div class="p-3 bg-slate-800/40 rounded-xl"><p class="text-slate-400">充電賣電淨毛利</p><p class="text-base font-bold text-white mt-1" id="valChargingProfit">NT$ 0</p></div>
-                    <div class="p-3 bg-slate-800/40 rounded-xl"><p class="text-slate-400">降約基本費節省</p><p class="text-base font-bold text-emerald-400 mt-1" id="valCapacitySavings">NT$ 0</p></div>
-                    <div class="p-3 bg-slate-800/40 rounded-xl"><p class="text-slate-400">時間電價套利</p><p class="text-base font-bold text-cyan-400 mt-1" id="valTouArbitrage">NT$ 0</p></div>
-                    <div class="p-3 bg-slate-800/40 rounded-xl"><p class="text-slate-400">規避超約罰款</p><p class="text-base font-bold text-amber-400 mt-1" id="valPenaltyAvoided">NT$ 0</p></div>
+                <h3 class="text-sm font-bold text-slate-200 mb-4">綜合收益組成 (每年)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        <div class="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl"><p class="text-slate-400">充電賣電淨毛利</p><p class="text-base font-bold text-white mt-1" id="valChargingProfit">NT$ 0</p></div>
+                        <div class="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl"><p class="text-slate-400">降約基本費節省</p><p class="text-base font-bold text-emerald-400 mt-1" id="valCapacitySavings">NT$ 0</p></div>
+                        <div class="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl"><p class="text-slate-400">時間電價套利</p><p class="text-base font-bold text-cyan-400 mt-1" id="valTouArbitrage">NT$ 0</p></div>
+                        <div class="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl"><p class="text-slate-400">規避超約罰款</p><p class="text-base font-bold text-amber-400 mt-1" id="valPenaltyAvoided">NT$ 0</p></div>
+                    </div>
+                    <div class="h-44 relative flex justify-center items-center">
+                        <canvas id="revenuePieChart"></canvas>
+                    </div>
                 </div>
             </div>
 
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
                 <h3 class="text-sm font-bold text-slate-200 mb-2">10 年期現金流比較</h3>
-                <div class="h-64 relative"><canvas id="cashflowLineChart"></canvas></div>
+                <div class="h-56 relative"><canvas id="cashflowLineChart"></canvas></div>
             </div>
         </div>
     </main>
 
     <script>
         let lineChart = null;
+        let pieChart = null;
         let isUpdatingCost = false;
 
-        // 電價與機電建置單價的對應表
         const TARIFF_CAPEX_DEFAULTS = {
-            'ev_dedicated': 6000,   // 常規機電
-            'hv_3stage': 7500,      // 含高壓受電室、變壓器、VCB/LBS
-            'ehv_3stage': 10000     // 含特高壓變電所、GIS
+            'ev_dedicated': 6000,   
+            'hv_3stage': 7500,      
+            'ehv_3stage': 10000     
         };
 
-        // 監聽電價切換事件，自動帶入對應的建置單價
         document.getElementById('tariffType').addEventListener('change', function(e) {
             const newRate = TARIFF_CAPEX_DEFAULTS[e.target.value];
             if (newRate) {
@@ -180,8 +204,7 @@
                 gunCount: parseFloat(document.getElementById('gunCount').value) || 0,
                 gunPower: parseFloat(document.getElementById('gunPower').value) || 0,
                 dailyKwh: parseFloat(document.getElementById('dailyKwh').value) || 0,
-                // 修改為抓取純利數值
-                chargingProfitPerKwh: parseFloat(document.getElementById('chargingProfitPerKwh').value) || 0,
+                chargingServiceFee: parseFloat(document.getElementById('chargingServiceFee').value) || 0,
                 evCapexRate: parseFloat(document.getElementById('evCapexRate').value) || 0,
                 
                 enableBess: document.getElementById('enableBess').checked,
@@ -189,19 +212,32 @@
                 bessKw: parseFloat(document.getElementById('bessKw').value) || 0,
                 bessKwh: parseFloat(document.getElementById('bessKwh').value) || 0,
                 bessTotalCost: parseFloat(document.getElementById('bessTotalCost').value) || 0,
+                
                 chkAvoidCapex: document.getElementById('chkAvoidCapex').checked,
+                avoidedCapexValue: parseFloat(document.getElementById('avoidedCapexValue').value) || 0,
 
                 enableDLM: document.getElementById('enableDLM').checked,
                 enableTOU: document.getElementById('enableTOU').checked
             };
         }
 
-        function formatPaybackDisplay(el, paybackText) {
-            el.innerText = paybackText;
-            if (paybackText.includes('虧損')) {
-                el.classList.add('text-loss');
+        // 金額格式化工具 (處理紅字負數)
+        function formatCurrency(val) {
+            if (val < 0) {
+                return "-NT$ " + Math.abs(Math.round(val)).toLocaleString();
+            }
+            return "NT$ " + Math.round(val).toLocaleString();
+        }
+
+        function formatDisplayStyles(el, val, isPayback = false) {
+            if (isPayback) {
+                el.innerText = val;
+                if (val.includes('虧損')) { el.classList.add('text-loss', 'text-2xl'); el.classList.remove('text-3xl', 'text-4xl'); } 
+                else { el.classList.remove('text-loss', 'text-2xl'); }
             } else {
-                el.classList.remove('text-loss');
+                el.innerText = formatCurrency(val);
+                if (val < 0) { el.classList.add('text-loss'); } 
+                else { el.classList.remove('text-loss'); }
             }
         }
 
@@ -211,7 +247,8 @@
             document.getElementById('b1_recContract').innerText = `${standalone.recContractKw} kW`;
             document.getElementById('b1_capex').innerText = `NT$ ${Math.round(standalone.evCapex).toLocaleString()}`;
             
-            formatPaybackDisplay(document.getElementById('resA_Payback'), standalone.paybackYears);
+            formatDisplayStyles(document.getElementById('resA_Payback'), standalone.paybackYears, true);
+            formatDisplayStyles(document.getElementById('resA_TenYear'), standalone.tenYearNetProfit, false);
 
             const bessSec = document.getElementById('bessSection');
             const emsSec = document.getElementById('emsSection');
@@ -220,9 +257,11 @@
                 emsSec.style.opacity = '0.4'; emsSec.style.pointerEvents = 'none';
                 document.getElementById('enableDLM').checked = false;
                 document.getElementById('enableTOU').checked = false;
-                renderLineChart(integrated.cashFlowA, integrated.cashFlowA);
                 
-                formatPaybackDisplay(document.getElementById('resB_Payback'), standalone.paybackYears);
+                formatDisplayStyles(document.getElementById('resB_Payback'), standalone.paybackYears, true);
+                formatDisplayStyles(document.getElementById('resB_TenYear'), standalone.tenYearNetProfit, false);
+                
+                renderCharts(integrated.cashFlowA, integrated.cashFlowA, integrated.breakdown);
                 return;
             } else {
                 bessSec.style.opacity = '1.0'; bessSec.style.pointerEvents = 'auto';
@@ -233,21 +272,23 @@
                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"></path></svg>
                 智慧提示：開啟 DLM 限載與儲能後，建議可降約至 ${integrated.suggestedContractKw} kW`;
 
-            formatPaybackDisplay(document.getElementById('resB_Payback'), integrated.paybackYears);
+            formatDisplayStyles(document.getElementById('resB_Payback'), integrated.paybackYears, true);
+            formatDisplayStyles(document.getElementById('resB_TenYear'), integrated.tenYearNetProfit, false);
 
             const b = integrated.breakdown;
-            document.getElementById('valChargingProfit').innerText = `NT$ ${Math.round(b.chargingProfit).toLocaleString()}`;
-            document.getElementById('valCapacitySavings').innerText = `NT$ ${Math.round(b.capacitySavings).toLocaleString()}`;
-            document.getElementById('valTouArbitrage').innerText = `NT$ ${Math.round(b.touArbitrage).toLocaleString()}`;
-            document.getElementById('valPenaltyAvoided').innerText = `NT$ ${Math.round(b.penaltyAvoided).toLocaleString()}`;
+            document.getElementById('valChargingProfit').innerText = formatCurrency(b.chargingProfit);
+            document.getElementById('valCapacitySavings').innerText = formatCurrency(b.capacitySavings);
+            document.getElementById('valTouArbitrage').innerText = formatCurrency(b.touArbitrage);
+            document.getElementById('valPenaltyAvoided').innerText = formatCurrency(b.penaltyAvoided);
 
-            renderLineChart(integrated.cashFlowA, integrated.cashFlowB);
+            renderCharts(integrated.cashFlowA, integrated.cashFlowB, b);
         }
 
-        function renderLineChart(cashFlowA, cashFlowB) {
-            const ctx = document.getElementById('cashflowLineChart').getContext('2d');
+        function renderCharts(cashFlowA, cashFlowB, breakdown) {
+            // 1. 折線圖
+            const ctxLine = document.getElementById('cashflowLineChart').getContext('2d');
             if (lineChart) lineChart.destroy();
-            lineChart = new Chart(ctx, {
+            lineChart = new Chart(ctxLine, {
                 type: 'line',
                 data: {
                     labels: ['建置', 'Y1', 'Y2', 'Y3', 'Y4', 'Y5', 'Y6', 'Y7', 'Y8', 'Y9', 'Y10'],
@@ -257,6 +298,39 @@
                     ]
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } }, scales: { x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } }, y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } } } }
+            });
+
+            // 2. 圓餅圖 (若皆為負數或0，給予預設顯示以防破圖)
+            const ctxPie = document.getElementById('revenuePieChart').getContext('2d');
+            if (pieChart) pieChart.destroy();
+            
+            const dataValues = [
+                Math.max(0, breakdown.chargingProfit), 
+                Math.max(0, breakdown.capacitySavings), 
+                Math.max(0, breakdown.touArbitrage), 
+                Math.max(0, breakdown.penaltyAvoided)
+            ];
+
+            pieChart = new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: ['充電賣電', '降約節省', '時間電價', '規避罰款'],
+                    datasets: [{
+                        data: dataValues.some(v => v > 0) ? dataValues : [1, 0, 0, 0],
+                        backgroundColor: ['#f1f5f9', '#34d399', '#22d3ee', '#fbbf24'],
+                        borderWidth: 0,
+                        hoverOffset: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#cbd5e1', font: { size: 11 }, usePointStyle: true, padding: 15 } },
+                        tooltip: { callbacks: { label: function(context) { return ' ' + context.label + ': NT$ ' + context.raw.toLocaleString(); } } }
+                    }
+                }
             });
         }
 
