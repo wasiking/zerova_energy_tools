@@ -1,24 +1,33 @@
 /**
- * ZEROVA EV + BESS ROI 核心試算引擎 (三區塊版)
+ * ZEROVA EV + BESS ROI 核心試算引擎 (三區塊版 + 多電價 + 淨毛利直算模組)
  */
 const ROIEngine = {
-    // 1. 台電費率與基礎常數 (以電動車專用電價為主)
+    // 1. 台電三種電價費率資料庫
     TARIFFS: {
-        hv_ev: { name: '高壓專用電價', discount: 0.95 },
-        lv_ev: { name: '低壓專用電價', discount: 1.00 }
+        ev_dedicated: { 
+            name: '電動車充換電設施專用電價', 
+            basicSummer: 47.20 * 0.95, 
+            basicNonSummer: 34.60 * 0.95,
+            touDiffSummer: 7.05,
+            touDiffNonSummer: 6.92
+        },
+        hv_3stage: { 
+            name: '高壓工商業三段式時間電價', 
+            basicSummer: 223.60, 
+            basicNonSummer: 166.90, 
+            touDiffSummer: 5.20,
+            touDiffNonSummer: 3.50
+        },
+        ehv_3stage: { 
+            name: '特高壓工商業三段式時間電價', 
+            basicSummer: 216.40, 
+            basicNonSummer: 161.40, 
+            touDiffSummer: 4.80,
+            touDiffNonSummer: 3.30
+        }
     },
     RATES: {
-        basicSummer: 47.20,      // 夏月經常契約基本費 (元/kW/月)
-        basicNonSummer: 34.60,   // 非夏月經常契約基本費 (元/kW/月)
-        
-        // 時間電價 (未折扣前原價)
-        peakSummer: 9.34,        // 夏月尖峰
-        offPeakSummer: 2.29,     // 夏月離峰
-        peakNonSummer: 9.10,     // 非夏月尖峰
-        offPeakNonSummer: 2.18,  // 非夏月離峰
-
-        avgPowerCost: 3.8,       // 預設台電平均購電成本 (元/kWh)
-        evCapexRate: 6000,       // 充電樁完工建置單價 (元/kW)
+        // avgPowerCost 已移除，改由 UI 直接傳入每度電純利
         emsCost: 300000,         // EMS 系統費用 (元)
         auxPowerKw: 20           // 輔電系統預留容量 (kW)
     },
@@ -27,30 +36,32 @@ const ROIEngine = {
      * 第一區塊：單純充電站 (Baseline)
      */
     calcStandalone(inputs) {
-        const { tariffType, gunCount, gunPower, dailyKwh, chargingPrice } = inputs;
+        // chargingProfitPerKwh 為 UI 傳入的每度電淨毛利
+        const { tariffType, gunCount, gunPower, dailyKwh, chargingProfitPerKwh, evCapexRate } = inputs;
         
         const totalPowerKw = gunCount * gunPower;
         const auxPowerKw = this.RATES.auxPowerKw;
-        
-        // 建議契約容量 (無儲能：全功率輸出 + 輔電)
         const recContractKw = totalPowerKw + auxPowerKw;
-        const evCapex = totalPowerKw * this.RATES.evCapexRate;
+        
+        // 動態計算總 CAPEX
+        const evCapex = totalPowerKw * evCapexRate;
 
-        // 折算費率 (高壓 95%)
-        const discount = this.TARIFFS[tariffType]?.discount || 0.95;
-        const basicSummer = this.RATES.basicSummer * discount;
-        const basicNonSummer = this.RATES.basicNonSummer * discount;
+        const tariff = this.TARIFFS[tariffType] || this.TARIFFS['ev_dedicated'];
 
-        // 賣電毛利
+        // 賣電毛利 (直接使用：年總度數 * 每度電淨毛利)
         const annualKwh = dailyKwh * 365;
-        const annualChargingProfit = annualKwh * (chargingPrice - this.RATES.avgPowerCost);
+        const annualChargingProfit = annualKwh * chargingProfitPerKwh;
 
         // 基本電費支出
-        const annualCapacityCost = recContractKw * (4 * basicSummer + 8 * basicNonSummer);
+        const annualCapacityCost = recContractKw * (4 * tariff.basicSummer + 8 * tariff.basicNonSummer);
         const annualNetBenefit = annualChargingProfit - annualCapacityCost;
-        const paybackYears = annualNetBenefit > 0 ? (evCapex / annualNetBenefit).toFixed(1) : "無法回本";
+        
+        const paybackYears = annualNetBenefit > 0 
+            ? (evCapex / annualNetBenefit).toFixed(1) + " 年" 
+            : "每年虧損 " + Math.round(Math.abs(annualNetBenefit) / 10000) + " 萬";
 
         return {
+            tariff,
             totalPowerKw,
             auxPowerKw,
             recContractKw,
@@ -58,10 +69,7 @@ const ROIEngine = {
             annualChargingProfit,
             annualCapacityCost,
             annualNetBenefit,
-            paybackYears,
-            discount,
-            basicSummer,
-            basicNonSummer
+            paybackYears
         };
     },
 
@@ -90,41 +98,34 @@ const ROIEngine = {
         }
 
         const sr = standaloneResult;
+        const tariff = sr.tariff;
 
-        // 計算最佳建議契約容量 (供 UI 提示)
-        // 若啟用 DLM：充電樁負載限縮為 60%
         const effectiveEvPower = enableDLM ? (sr.totalPowerKw * 0.6) : sr.totalPowerKw;
-        // 建議值 = (有效充電負載 - 儲能放電功率 + 輔電)
         const suggestedContractKw = Math.max(50, Math.round(effectiveEvPower - bessKw + sr.auxPowerKw));
 
-        // CAPEX 計算 (充電樁 + 儲能總價 + EMS - 擴容避險)
         const avoidedCapexVal = chkAvoidCapex ? 1500000 : 0;
         const totalCapex = Math.max(0, (sr.evCapex + bessTotalCost + this.RATES.emsCost) - avoidedCapexVal);
 
-        // 效益 1：降低基本電費節省
         const capacitySavedKw = Math.max(0, sr.recContractKw - targetContractKw);
-        const valCapacitySavings = capacitySavedKw * (4 * sr.basicSummer + 8 * sr.basicNonSummer);
+        const valCapacitySavings = capacitySavedKw * (4 * tariff.basicSummer + 8 * tariff.basicNonSummer);
 
-        // 效益 2：時間電價套利 (若開啟 TOU)
         let valTouArbitrage = 0;
         if (enableTOU) {
-            const dailyBessDischarge = bessKwh * 0.9 * 0.88; // DoD 90%, RTE 88%
-            const summerDiff = (this.RATES.peakSummer - this.RATES.offPeakSummer) * sr.discount;
-            const nonSummerDiff = (this.RATES.peakNonSummer - this.RATES.offPeakNonSummer) * sr.discount;
-            valTouArbitrage = (dailyBessDischarge * summerDiff * 122) + (dailyBessDischarge * nonSummerDiff * 243);
+            const dailyBessDischarge = bessKwh * 0.9 * 0.88; 
+            valTouArbitrage = (dailyBessDischarge * tariff.touDiffSummer * 122) + (dailyBessDischarge * tariff.touDiffNonSummer * 243);
         }
 
-        // 效益 3：防超約罰款規避價值 (若開啟 DLM，預設擋下 15% 的突發超約)
         let valPenaltyAvoided = 0;
         if (enableDLM) {
-            valPenaltyAvoided = (sr.totalPowerKw * 0.15) * (sr.basicSummer * 2 * 4 + sr.basicNonSummer * 2 * 8);
+            valPenaltyAvoided = (sr.totalPowerKw * 0.15) * (tariff.basicSummer * 2 * 4 + tariff.basicNonSummer * 2 * 8);
         }
 
-        // 總綜合效益與回收期
         const annualNetBenefit = sr.annualChargingProfit + valCapacitySavings + valTouArbitrage + valPenaltyAvoided;
-        const paybackYears = annualNetBenefit > 0 ? (totalCapex / annualNetBenefit).toFixed(1) : "無法回本";
+        
+        const paybackYears = annualNetBenefit > 0 
+            ? (totalCapex / annualNetBenefit).toFixed(1) + " 年" 
+            : "每年虧損 " + Math.round(Math.abs(annualNetBenefit) / 10000) + " 萬";
 
-        // 現金流陣列
         const cashFlowA = [-sr.evCapex];
         const cashFlowB = [-totalCapex];
         for (let i = 1; i <= 10; i++) {
