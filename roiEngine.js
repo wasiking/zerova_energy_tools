@@ -1,8 +1,16 @@
 /**
  * ZEROVA EV + BESS ROI 核心試算引擎
- * (後端內建：RTE 85%, DOD 90%, 10年 SOH 線性衰退至 80%)
+ * (版本：v1200 | 包含 10年 SOH 線性衰退模型與匯出驗證模組)
  */
 const ROIEngine = {
+    // === 授權驗證模組 ===
+    verifyExportAuth(user, pass) {
+        // 預設的匯出權限帳號與密碼 (可在此修改)
+        const validUser = "admin";
+        const validPass = "zerova";
+        return (user === validUser && pass === validPass);
+    },
+
     // 1. 台電三種電價費率資料庫
     TARIFFS: {
         ev_dedicated: { 
@@ -34,11 +42,11 @@ const ROIEngine = {
         auxPowerKw: 20           // 輔電系統預留容量 (kW)
     },
 
-    // 3. 內建電池物理規格 (不從前端接收，由後端直接控制)
+    // 3. 內建電池物理規格 (不從前端接收，由邏輯層直接控制)
     BATTERY_SPECS: {
         dod: 0.90,               // 放電深度 (DOD) 90%
         rte: 0.85,               // 充放電轉換效率 (RTE) 85%
-        sohEnd10Yr: 0.80         // 第 10 年末健康度 (SOH) 80% (第1年 100% ~ 第10年 80% 線性衰退)
+        sohEnd10Yr: 0.80         // 第 10 年末健康度 (SOH) 80%
     },
 
     /**
@@ -63,15 +71,9 @@ const ROIEngine = {
             : "每年虧損 " + Math.round(Math.abs(annualNetBenefit) / 10000) + " 萬";
 
         return {
-            tariff,
-            totalPowerKw,
-            recContractKw,
-            evCapex,
-            annualChargingProfit,
-            annualCapacityCost,
-            annualNetBenefit,
-            tenYearNetProfit,
-            paybackYears
+            tariff, totalPowerKw, recContractKw, evCapex,
+            annualChargingProfit, annualCapacityCost, annualNetBenefit,
+            tenYearNetProfit, paybackYears
         };
     },
 
@@ -86,19 +88,15 @@ const ROIEngine = {
 
         const sr = standaloneResult;
 
+        // 若未開啟儲能，直接返回單充結果與 10 年現金流
         if (!enableBess) {
             const cashFlowA = [-sr.evCapex];
             for (let i = 1; i <= 10; i++) cashFlowA.push(-sr.evCapex + (sr.annualNetBenefit * i));
             return {
-                enableBess: false,
-                totalCapex: sr.evCapex,
-                annualNetBenefit: sr.annualNetBenefit,
-                tenYearNetProfit: sr.tenYearNetProfit,
-                paybackYears: sr.paybackYears,
+                enableBess: false, totalCapex: sr.evCapex, annualNetBenefit: sr.annualNetBenefit,
+                tenYearNetProfit: sr.tenYearNetProfit, paybackYears: sr.paybackYears,
                 breakdown: { chargingProfit: sr.annualChargingProfit, capacitySavings: 0, touArbitrage: 0, penaltyAvoided: 0 },
-                cashFlowA,
-                cashFlowB: cashFlowA,
-                suggestedContractKw: sr.recContractKw
+                cashFlowA, cashFlowB: cashFlowA, suggestedContractKw: sr.recContractKw
             };
         }
 
@@ -109,17 +107,17 @@ const ROIEngine = {
         const avoidedCapexVal = chkAvoidCapex ? avoidedCapexValue : 0;
         const totalCapex = Math.max(0, (sr.evCapex + bessTotalCost + this.RATES.emsCost) - avoidedCapexVal);
 
-        // 1. 降約基本費節省 (固定效益)
+        // 1. 降約基本費節省
         const capacitySavedKw = Math.max(0, sr.recContractKw - targetContractKw);
         const valCapacitySavings = capacitySavedKw * (4 * tariff.basicSummer + 8 * tariff.basicNonSummer);
 
-        // 2. 規避超約罰款 (固定效益)
+        // 2. 規避超約罰款
         let valPenaltyAvoided = 0;
         if (enableDLM) {
             valPenaltyAvoided = (sr.totalPowerKw * 0.15) * (tariff.basicSummer * 2 * 4 + tariff.basicNonSummer * 2 * 8);
         }
 
-        // 3. 時間電價基準套利 (SOH 100% 時之效益，套用內建的 DOD 與 RTE)
+        // 3. 時間電價基準套利 (套用內建的 DOD 與 RTE)
         let baseTouArbitrage = 0;
         if (enableTOU) {
             const dailyBessDischargeBase = bessKwh * this.BATTERY_SPECS.dod * this.BATTERY_SPECS.rte; 
@@ -136,7 +134,7 @@ const ROIEngine = {
         let totalBenefitB10Yr = 0;
 
         for (let i = 1; i <= 10; i++) {
-            // SOH 每年線性衰退計算 (第 1 年 100% -> 第 10 年 80%)
+            // SOH 每年線性衰退計算
             const currentSOH = 1 - (i - 1) * ((1 - this.BATTERY_SPECS.sohEnd10Yr) / 9);
             const currentTouArbitrage = baseTouArbitrage * currentSOH;
             totalTou10Yr += currentTouArbitrage;
@@ -151,7 +149,7 @@ const ROIEngine = {
             cashFlowB.push(cumulativeB);
         }
 
-        // 10 年平均值 (輸出給前端 UI 渲染)
+        // 10 年平均值 (供 UI 渲染)
         const avgTouArbitrage = totalTou10Yr / 10;
         const avgAnnualNetBenefit = totalBenefitB10Yr / 10;
         const tenYearNetProfit = cumulativeB;
@@ -161,20 +159,15 @@ const ROIEngine = {
             : "每年虧損 " + Math.round(Math.abs(avgAnnualNetBenefit) / 10000) + " 萬";
 
         return {
-            enableBess: true,
-            totalCapex,
-            annualNetBenefit: avgAnnualNetBenefit,
-            tenYearNetProfit,
-            paybackYears,
-            suggestedContractKw,
+            enableBess: true, totalCapex, annualNetBenefit: avgAnnualNetBenefit,
+            tenYearNetProfit, paybackYears, suggestedContractKw,
             breakdown: {
                 chargingProfit: sr.annualChargingProfit,
                 capacitySavings: valCapacitySavings,
                 touArbitrage: avgTouArbitrage,
                 penaltyAvoided: valPenaltyAvoided
             },
-            cashFlowA,
-            cashFlowB
+            cashFlowA, cashFlowB
         };
     },
 
