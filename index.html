@@ -267,8 +267,13 @@
             const element = document.getElementById('captureArea');
             const isDarkMode = html.classList.contains('dark');
             
+            // 1. 取得欲匯出區塊的真實寬度與高度
+            const w = element.scrollWidth;
+            const h = element.scrollHeight;
+
             const opt = {
-                margin:       10,
+                // 留出一點邊距避免太貼邊
+                margin:       15,
                 filename:     'ZEROVA_充儲效益評估報告.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { 
@@ -276,9 +281,15 @@
                     useCORS: true, 
                     backgroundColor: isDarkMode ? '#080d16' : '#f8fafc' 
                 },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+                // 2. 【核心解法】將 PDF 尺寸動態設定為與網頁一樣大，拒絕強制分頁
+                jsPDF: { 
+                    unit: 'px', 
+                    format: [w + 30, h + 30], 
+                    orientation: 'portrait' 
+                }
             };
 
+            // 執行 html2pdf
             html2pdf().set(opt).from(element).save();
         }
 
