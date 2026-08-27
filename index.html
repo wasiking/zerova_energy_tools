@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZEROVA 馳諾瓦 | EV 充儲一體三階段 ROI 簡報工具</title>
+    <title>ZEROVA | EV+BESS ROI Tool</title>
     <!-- 載入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 載入 Chart.js 圖表庫 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- 載入 html2pdf.js 用於 PDF 匯出 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <!-- 載入核心演算法 (版本更新以清除快取) -->
+    <!-- 載入核心演算法 -->
     <script src="roiEngine.js?v=1200"></script>
     
     <script>
@@ -33,14 +33,14 @@
         <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 rounded-2xl shadow-2xl w-96 max-w-[90%]">
             <div class="flex items-center gap-3 mb-4">
                 <svg class="w-6 h-6 text-teal-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                <h3 class="text-lg font-bold text-slate-800 dark:text-white">報告匯出授權</h3>
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white" data-i18n="lblAuth">報告匯出授權</h3>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">系統偵測到匯出請求，請輸入員工帳號與密碼進行驗證。</p>
-            <input type="text" id="exportUser" placeholder="帳號" class="w-full mb-3 p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white text-sm">
-            <input type="password" id="exportPass" placeholder="密碼" class="w-full mb-5 p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white text-sm">
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-5" data-i18n="descAuth">系統偵測到匯出請求，請輸入員工帳號與密碼進行驗證。</p>
+            <input type="text" id="exportUser" data-i18n="phUser" placeholder="帳號" class="w-full mb-3 p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white text-sm">
+            <input type="password" id="exportPass" data-i18n="phPass" placeholder="密碼" class="w-full mb-5 p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white text-sm">
             <div class="flex justify-end gap-3">
-                <button id="cancelAuthBtn" class="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">取消</button>
-                <button id="confirmAuthBtn" class="px-4 py-2 text-sm font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-500 transition shadow-lg shadow-teal-900/20">驗證並匯出</button>
+                <button id="cancelAuthBtn" class="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition" data-i18n="btnCancel">取消</button>
+                <button id="confirmAuthBtn" class="px-4 py-2 text-sm font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-500 transition shadow-lg shadow-teal-900/20" data-i18n="btnConfirm">驗證並匯出</button>
             </div>
         </div>
     </div>
@@ -53,25 +53,28 @@
             </svg>
             <div class="flex flex-col">
                 <span class="text-2xl font-black tracking-widest text-slate-800 dark:text-white">ZEROVA</span>
-                <span class="text-xl font-bold text-slate-500 dark:text-slate-300">智慧充儲三階段 ROI 提案工具</span>
+                <span class="text-xl font-bold text-slate-500 dark:text-slate-300" data-i18n="appTitle">智慧充儲三階段 ROI 提案工具</span>
             </div>
         </div>
         
         <div class="flex items-center gap-3">
+            <!-- 語系切換按鈕 -->
+            <button id="langToggleBtn" class="px-3 py-2.5 rounded-xl font-bold text-sm bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800/50 transition border border-indigo-200 dark:border-indigo-800/50" title="Switch Language">
+                <span id="langToggleText">EN</span>
+            </button>
             <!-- 深淺色切換按鈕 -->
-            <button id="themeToggle" class="p-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition" title="切換深/淺色模式">
+            <button id="themeToggle" class="p-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition" title="Theme">
                 <svg id="moonIcon" class="w-5 h-5 hidden dark:block" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
                 <svg id="sunIcon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
             </button>
             <!-- 匯出 PDF 按鈕 -->
             <button id="exportPdfBtn" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-sm transition shadow-lg shadow-teal-900/20">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                輸出報告
+                <span data-i18n="btnExport">輸出報告</span>
             </button>
         </div>
     </header>
 
-    <!-- 將要被截圖轉為 PDF 的主要內容區塊 -->
     <main id="captureArea" class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 pb-10">
 
         <div class="lg:col-span-5 space-y-6">
@@ -79,25 +82,25 @@
             <div class="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl">
                 <h2 class="text-teal-600 dark:text-teal-400 font-bold mb-4 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-2">
                     <span class="w-6 h-6 rounded-full bg-teal-100 dark:bg-teal-500/20 text-teal-700 dark:text-teal-400 flex justify-center items-center text-xs">1</span>
-                    第一區塊：單純充電站 (Baseline)
+                    <span data-i18n="sec1Title">第一區塊：單純充電站 (Baseline)</span>
                 </h2>
                 <div class="space-y-4">
                     <select id="tariffType" class="w-full p-2.5 text-sm rounded-lg bg-slate-50 dark:bg-[#131d31] border-slate-300 dark:border-teal-900 focus:border-teal-500 text-slate-800 dark:text-white">
-                        <option value="ev_dedicated">電動車充換電設施專用電價 (常規機電)</option>
-                        <option value="hv_3stage">高壓工商業三段式時間電價 (含高壓受電室/變壓器)</option>
-                        <option value="ehv_3stage">特高壓工商業三段式時間電價 (含特高壓變電所)</option>
+                        <option value="ev_dedicated" data-i18n="opt1">電動車充換電設施專用電價 (常規機電)</option>
+                        <option value="hv_3stage" data-i18n="opt2">高壓工商業三段式時間電價 (含高壓受電室/變壓器)</option>
+                        <option value="ehv_3stage" data-i18n="opt3">特高壓工商業三段式時間電價 (含特高壓變電所)</option>
                     </select>
                     
                     <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div><label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">槍數 (槍)</label><input type="number" id="gunCount" value="4" class="w-full p-2 rounded-lg text-sm bg-slate-50 dark:bg-[#131d31] border-slate-300 dark:border-[#233248] text-slate-800 dark:text-white"></div>
-                        <div><label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">單槍功率 (kW)</label><input type="number" id="gunPower" value="180" class="w-full p-2 rounded-lg text-sm bg-slate-50 dark:bg-[#131d31] border-slate-300 dark:border-[#233248] text-slate-800 dark:text-white"></div>
-                        <div><label class="block text-xs text-amber-600 dark:text-slate-400 mb-1">建置單價 (元/kW)</label><input type="number" id="evCapexRate" value="6000" class="w-full p-2 rounded-lg text-sm bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-100"></div>
-                        <div><label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">每日總充電量 (kWh)</label><input type="number" id="dailyKwh" value="600" class="w-full p-2 rounded-lg text-sm bg-slate-50 dark:bg-[#131d31] border-slate-300 dark:border-[#233248] text-slate-800 dark:text-white"></div>
-                        <div><label class="block text-xs text-teal-600 dark:text-teal-300 mb-1">充電服務費 (元/kWh)</label><input type="number" id="chargingServiceFee" value="3.5" step="0.1" class="w-full p-2 rounded-lg text-sm bg-slate-50 dark:bg-[#131d31] border-teal-300 dark:border-teal-800/50 text-slate-800 dark:text-white" title="僅輸入每度電純利"></div>
+                        <div><label class="block text-xs text-slate-500 dark:text-slate-400 mb-1" data-i18n="lblGunCount">槍數 (槍)</label><input type="number" id="gunCount" value="4" class="w-full p-2 rounded-lg text-sm bg-slate-50 dark:bg-[#131d31] border-slate-300 dark:border-[#233248] text-slate-800 dark:text-white"></div>
+                        <div><label class="block text-xs text-slate-500 dark:text-slate-400 mb-1" data-i18n="lblGunPower">單槍功率 (kW)</label><input type="number" id="gunPower" value="180" class="w-full p-2 rounded-lg text-sm bg-slate-50 dark:bg-[#131d31] border-slate-300 dark:border-[#233248] text-slate-800 dark:text-white"></div>
+                        <div><label class="block text-xs text-amber-600 dark:text-slate-400 mb-1" data-i18n="lblCapexRate">建置單價 (元/kW)</label><input type="number" id="evCapexRate" value="6000" class="w-full p-2 rounded-lg text-sm bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-100"></div>
+                        <div><label class="block text-xs text-slate-500 dark:text-slate-400 mb-1" data-i18n="lblDailyKwh">每日總充電量 (kWh)</label><input type="number" id="dailyKwh" value="600" class="w-full p-2 rounded-lg text-sm bg-slate-50 dark:bg-[#131d31] border-slate-300 dark:border-[#233248] text-slate-800 dark:text-white"></div>
+                        <div><label class="block text-xs text-teal-600 dark:text-teal-300 mb-1" data-i18n="lblProfit">充電服務費 (元/kWh)</label><input type="number" id="chargingServiceFee" value="3.5" step="0.1" class="w-full p-2 rounded-lg text-sm bg-slate-50 dark:bg-[#131d31] border-teal-300 dark:border-teal-800/50 text-slate-800 dark:text-white"></div>
                     </div>
                     <div class="bg-slate-100 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700/50 space-y-1 text-xs">
-                        <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">原契約容量 (全功率+輔電20kW)：</span><span class="text-teal-600 dark:text-teal-300 font-bold" id="b1_recContract">740 kW</span></div>
-                        <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">充電樁建置總成本 (CAPEX)：</span><span class="text-slate-800 dark:text-white font-bold" id="b1_capex">NT$ 4,320,000</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400" data-i18n="lblContract">原契約容量 (全功率+輔電20kW)：</span><span class="text-teal-600 dark:text-teal-300 font-bold" id="b1_recContract">740 kW</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400" data-i18n="lblCapexTotal">充電樁建置總成本 (CAPEX)：</span><span class="text-slate-800 dark:text-white font-bold" id="b1_capex">NT$ 4,320,000</span></div>
                     </div>
                 </div>
             </div>
@@ -107,7 +110,7 @@
                 <div class="flex justify-between items-center mb-4 border-b border-slate-200 dark:border-slate-800 pb-2">
                     <h2 class="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-2">
                         <span class="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex justify-center items-center text-xs">2</span>
-                        第二區塊：加入儲能硬體 (BESS)
+                        <span data-i18n="sec2Title">第二區塊：加入儲能硬體 (BESS)</span>
                     </h2>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="enableBess" class="sr-only peer" checked>
@@ -116,13 +119,13 @@
                 </div>
                 <div id="bessSection" class="space-y-4 transition-opacity duration-300">
                     <div class="grid grid-cols-2 gap-4">
-                        <div><label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">儲能功率 (kW)</label><input type="number" id="bessKw" value="200" class="w-full p-2 rounded-lg text-sm bg-slate-50 dark:bg-[#131d31] border-slate-300 dark:border-[#233248] text-slate-800 dark:text-white"></div>
-                        <div><label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">儲能容量 (kWh)</label><input type="number" id="bessKwh" value="400" class="w-full p-2 rounded-lg text-sm bg-slate-50 dark:bg-[#131d31] border-slate-300 dark:border-[#233248] text-slate-800 dark:text-white"></div>
-                        <div><label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">儲能建置單價 (元/kWh)</label><input type="number" id="bessUnitCost" value="14000" class="w-full p-2 rounded-lg text-sm bg-emerald-50 dark:bg-[#131d31] border-emerald-200 dark:border-[#233248] text-emerald-700 dark:text-emerald-300"></div>
-                        <div><label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">儲能總建置成本 (元)</label><input type="number" id="bessTotalCost" value="5600000" class="w-full p-2 rounded-lg text-sm bg-emerald-50 dark:bg-[#131d31] border-emerald-200 dark:border-[#233248] text-emerald-700 dark:text-emerald-300"></div>
+                        <div><label class="block text-xs text-slate-500 dark:text-slate-400 mb-1" data-i18n="lblBessKw">儲能功率 (kW)</label><input type="number" id="bessKw" value="200" class="w-full p-2 rounded-lg text-sm bg-slate-50 dark:bg-[#131d31] border-slate-300 dark:border-[#233248] text-slate-800 dark:text-white"></div>
+                        <div><label class="block text-xs text-slate-500 dark:text-slate-400 mb-1" data-i18n="lblBessKwh">儲能容量 (kWh)</label><input type="number" id="bessKwh" value="400" class="w-full p-2 rounded-lg text-sm bg-slate-50 dark:bg-[#131d31] border-slate-300 dark:border-[#233248] text-slate-800 dark:text-white"></div>
+                        <div><label class="block text-xs text-slate-500 dark:text-slate-400 mb-1" data-i18n="lblBessUnit">儲能建置單價 (元/kWh)</label><input type="number" id="bessUnitCost" value="14000" class="w-full p-2 rounded-lg text-sm bg-emerald-50 dark:bg-[#131d31] border-emerald-200 dark:border-[#233248] text-emerald-700 dark:text-emerald-300"></div>
+                        <div><label class="block text-xs text-slate-500 dark:text-slate-400 mb-1" data-i18n="lblBessTotal">儲能總建置成本 (元)</label><input type="number" id="bessTotalCost" value="5600000" class="w-full p-2 rounded-lg text-sm bg-emerald-50 dark:bg-[#131d31] border-emerald-200 dark:border-[#233248] text-emerald-700 dark:text-emerald-300"></div>
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">降約後目標契約容量 (kW)</label>
+                        <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1" data-i18n="lblTargetKw">降約後目標契約容量 (kW)</label>
                         <input type="number" id="targetContractKw" value="252" class="w-full p-2 rounded-lg text-sm font-bold bg-slate-50 dark:bg-[#131d31] border-slate-300 dark:border-[#233248] text-slate-800 dark:text-white">
                         <p class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1 min-h-[16px]" id="uiHint_SuggestedKw"></p>
                     </div>
@@ -130,7 +133,7 @@
                     <div class="flex items-center justify-between p-2.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 rounded-lg">
                         <label class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
                             <input type="checkbox" id="chkAvoidCapex" class="rounded text-teal-500 focus:ring-0" checked>
-                            扣除高壓擴容工程節省 (NT$)
+                            <span data-i18n="chkAvoid">扣除高壓擴容工程節省 (NT$)</span>
                         </label>
                         <input type="number" id="avoidedCapexValue" value="1500000" class="w-28 p-1.5 rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs text-teal-700 dark:text-teal-300 text-right">
                     </div>
@@ -141,21 +144,21 @@
             <div class="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl">
                 <h2 class="text-cyan-600 dark:text-cyan-400 font-bold mb-4 border-b border-slate-200 dark:border-slate-800 pb-2 flex items-center gap-2">
                     <span class="w-6 h-6 rounded-full bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400 flex justify-center items-center text-xs">3</span>
-                    第三區塊：EMS 軟體與智慧調度
+                    <span data-i18n="sec3Title">第三區塊：EMS 軟體與智慧調度</span>
                 </h2>
                 <div id="emsSection" class="space-y-3 transition-opacity duration-300">
                     <div class="flex items-start gap-3 p-3 bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 rounded-xl">
                         <input type="checkbox" id="enableDLM" class="mt-1 rounded text-cyan-500 focus:ring-0" checked>
                         <div>
-                            <p class="text-sm font-bold text-slate-800 dark:text-white">動態負載管理 (DLM)</p>
-                            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">強制將充電負載調控在總功率 60% 以下，不僅防超約罰款，更可進一步壓低契約容量。</p>
+                            <p class="text-sm font-bold text-slate-800 dark:text-white" data-i18n="lblDlm">動態負載管理 (DLM)</p>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1" data-i18n="descDlm">強制將充電負載調控在總功率 60% 以下，不僅防超約罰款，更可進一步壓低契約容量。</p>
                         </div>
                     </div>
                     <div class="flex items-start gap-3 p-3 bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 rounded-xl">
                         <input type="checkbox" id="enableTOU" class="mt-1 rounded text-cyan-500 focus:ring-0" checked>
                         <div>
-                            <p class="text-sm font-bold text-slate-800 dark:text-white">時間電價套利 (TOU)</p>
-                            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">利用夏月/非夏月離峰低價充電、尖峰高價放電給 EV 賺取高額價差 (內建 SOH 老化模型)。</p>
+                            <p class="text-sm font-bold text-slate-800 dark:text-white" data-i18n="lblTou">時間電價套利 (TOU)</p>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1" data-i18n="descTou">利用夏月/非夏月離峰低價充電、尖峰高價放電給 EV 賺取高額價差 (內建 SOH 老化模型)。</p>
                         </div>
                     </div>
                 </div>
@@ -168,21 +171,21 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-lg">
                     <div>
-                        <span class="text-xs text-slate-500 dark:text-slate-400">方案 A：單純充電站 (Baseline)</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400" data-i18n="planA">方案 A：單純充電站 (Baseline)</span>
                         <p class="text-3xl font-black text-slate-800 dark:text-slate-300 mt-1" id="resA_Payback">4.2 年</p>
                     </div>
                     <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                        <span class="text-[11px] text-slate-400 dark:text-slate-500 font-semibold">10 年整體淨收益預估</span>
+                        <span class="text-[11px] text-slate-400 dark:text-slate-500 font-semibold" data-i18n="lbl10Yr">10 年整體淨收益預估</span>
                         <p class="text-lg font-bold text-slate-700 dark:text-slate-300 tracking-wide mt-0.5" id="resA_TenYear">NT$ 0</p>
                     </div>
                 </div>
                 <div id="cardPlanB" class="bg-teal-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-teal-950/40 border border-teal-200 dark:border-teal-500/40 rounded-2xl p-5 shadow-lg dark:shadow-teal-900/20 flex flex-col justify-between transition-all duration-300">
                     <div>
-                        <span class="text-xs text-teal-600 dark:text-teal-400 font-bold">方案 B：充儲一體 + EMS</span>
+                        <span class="text-xs text-teal-600 dark:text-teal-400 font-bold" data-i18n="planB">方案 B：充儲一體 + EMS</span>
                         <p class="text-4xl font-black text-teal-700 dark:text-teal-300 mt-1" id="resB_Payback">2.9 年</p>
                     </div>
                     <div class="mt-4 pt-4 border-t border-teal-200 dark:border-teal-800/50">
-                        <span class="text-[11px] text-teal-600/80 dark:text-teal-500/80 font-semibold">10 年整體淨收益預估</span>
+                        <span class="text-[11px] text-teal-600/80 dark:text-teal-500/80 font-semibold" data-i18n="lbl10Yr">10 年整體淨收益預估</span>
                         <p class="text-xl font-bold text-teal-700 dark:text-teal-400 tracking-wide mt-0.5" id="resB_TenYear">NT$ 0</p>
                     </div>
                 </div>
@@ -190,13 +193,13 @@
 
             <!-- 綜合收益組成 -->
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-lg">
-                <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4">綜合收益組成 (10 年平均/每年)</h3>
+                <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4" data-i18n="lblRev">綜合收益組成 (10 年平均/每年)</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                     <div class="grid grid-cols-2 gap-3 text-xs">
-                        <div class="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50 rounded-xl"><p class="text-slate-500 dark:text-slate-400">充電賣電淨毛利</p><p class="text-base font-bold text-slate-800 dark:text-white mt-1" id="valChargingProfit">NT$ 0</p></div>
-                        <div class="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50 rounded-xl"><p class="text-slate-500 dark:text-slate-400">降約基本費節省</p><p class="text-base font-bold text-emerald-600 dark:text-emerald-400 mt-1" id="valCapacitySavings">NT$ 0</p></div>
-                        <div class="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50 rounded-xl"><p class="text-slate-500 dark:text-slate-400">時間電價套利</p><p class="text-base font-bold text-cyan-600 dark:text-cyan-400 mt-1" id="valTouArbitrage">NT$ 0</p></div>
-                        <div class="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50 rounded-xl"><p class="text-slate-500 dark:text-slate-400">規避超約罰款</p><p class="text-base font-bold text-amber-500 dark:text-amber-400 mt-1" id="valPenaltyAvoided">NT$ 0</p></div>
+                        <div class="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50 rounded-xl"><p class="text-slate-500 dark:text-slate-400" data-i18n="lblRevChg">充電賣電淨毛利</p><p class="text-base font-bold text-slate-800 dark:text-white mt-1" id="valChargingProfit">NT$ 0</p></div>
+                        <div class="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50 rounded-xl"><p class="text-slate-500 dark:text-slate-400" data-i18n="lblRevCap">降約基本費節省</p><p class="text-base font-bold text-emerald-600 dark:text-emerald-400 mt-1" id="valCapacitySavings">NT$ 0</p></div>
+                        <div class="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50 rounded-xl"><p class="text-slate-500 dark:text-slate-400" data-i18n="lblRevTou">時間電價套利</p><p class="text-base font-bold text-cyan-600 dark:text-cyan-400 mt-1" id="valTouArbitrage">NT$ 0</p></div>
+                        <div class="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50 rounded-xl"><p class="text-slate-500 dark:text-slate-400" data-i18n="lblRevPen">規避超約罰款</p><p class="text-base font-bold text-amber-500 dark:text-amber-400 mt-1" id="valPenaltyAvoided">NT$ 0</p></div>
                     </div>
                     <div class="h-44 relative flex justify-center items-center">
                         <canvas id="revenuePieChart"></canvas>
@@ -206,7 +209,7 @@
 
             <!-- 10 年期現金流比較 -->
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-lg">
-                <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">10 年期累積現金流比較</h3>
+                <h3 class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2" data-i18n="lblChart">10 年期累積現金流比較</h3>
                 <div class="h-56 relative"><canvas id="cashflowLineChart"></canvas></div>
             </div>
         </div>
@@ -216,6 +219,73 @@
         let lineChart = null;
         let pieChart = null;
         let isUpdatingCost = false;
+
+        /* ========== 國際化 (i18n) 字典 ========== */
+        const i18nDict = {
+            'tw': {
+                appTitle: '智慧充儲三階段 ROI 提案工具', btnExport: '輸出報告',
+                sec1Title: '第一區塊：單純充電站 (Baseline)',
+                opt1: '電動車充換電設施專用電價 (常規機電)', opt2: '高壓工商業三段式時間電價 (含高壓受電室/變壓器)', opt3: '特高壓工商業三段式時間電價 (含特高壓變電所)',
+                lblGunCount: '槍數 (槍)', lblGunPower: '單槍功率 (kW)', lblCapexRate: '建置單價 (元/kW)', lblDailyKwh: '每日總充電量 (kWh)', lblProfit: '充電服務費 (元/kWh)',
+                lblContract: '原契約容量 (全功率+輔電20kW)：', lblCapexTotal: '充電樁建置總成本 (CAPEX)：',
+                sec2Title: '第二區塊：加入儲能硬體 (BESS)',
+                lblBessKw: '儲能功率 (kW)', lblBessKwh: '儲能容量 (kWh)', lblBessUnit: '儲能建置單價 (元/kWh)', lblBessTotal: '儲能總建置成本 (元)', lblTargetKw: '降約後目標契約容量 (kW)', chkAvoid: '扣除高壓擴容工程節省 (NT$)',
+                sec3Title: '第三區塊：EMS 軟體與智慧調度',
+                lblDlm: '動態負載管理 (DLM)', descDlm: '強制將充電負載調控在總功率 60% 以下，不僅防超約罰款，更可進一步壓低契約容量。',
+                lblTou: '時間電價套利 (TOU)', descTou: '利用夏月/非夏月離峰低價充電、尖峰高價放電給 EV 賺取高額價差 (內建 SOH 老化模型)。',
+                planA: '方案 A：單純充電站 (Baseline)', planB: '方案 B：充儲一體 + EMS', lbl10Yr: '10 年整體淨收益預估',
+                lblRev: '綜合收益組成 (10 年平均/每年)', lblRevChg: '充電賣電淨毛利', lblRevCap: '降約基本費節省', lblRevTou: '時間電價套利', lblRevPen: '規避超約罰款',
+                lblChart: '10 年期累積現金流比較',
+                lblAuth: '報告匯出授權', descAuth: '系統偵測到匯出請求，請輸入員工帳號與密碼進行驗證。',
+                phUser: '帳號', phPass: '密碼', btnCancel: '取消', btnConfirm: '驗證並匯出',
+                chartInit: '建置', chartP1: '方案 A (單純充電)', chartP2: '方案 B (充儲+EMS)',
+                pieL1: '充電賣電', pieL2: '降約節省', pieL3: '時間電價(10年均)', pieL4: '規避罰款',
+                tipDisabled: '未啟用', tipMsg: '智慧提示：開啟 DLM 限載與儲能後，建議可降約至',
+                errAuth: '帳號或密碼錯誤，請重新輸入！'
+            },
+            'en': {
+                appTitle: 'Smart EV+BESS ROI Proposal Tool', btnExport: 'Export PDF',
+                sec1Title: 'Sec 1: Standalone EV Charging (Baseline)',
+                opt1: 'EV Dedicated Tariff (Standard)', opt2: 'HV 3-Stage TOU Tariff (incl. Substation)', opt3: 'EHV 3-Stage TOU Tariff',
+                lblGunCount: 'Chargers (Guns)', lblGunPower: 'Power per Gun (kW)', lblCapexRate: 'Unit CAPEX (NT$/kW)', lblDailyKwh: 'Daily Charging (kWh)', lblProfit: 'Charging Profit (NT$/kWh)',
+                lblContract: 'Contract Capacity (Max+20kW Aux):', lblCapexTotal: 'Total EV CAPEX:',
+                sec2Title: 'Sec 2: Add Energy Storage (BESS)',
+                lblBessKw: 'BESS Power (kW)', lblBessKwh: 'BESS Capacity (kWh)', lblBessUnit: 'BESS Unit Cost (NT$/kWh)', lblBessTotal: 'BESS Total Cost (NT$)', lblTargetKw: 'Target Contract Capacity (kW)', chkAvoid: 'Deduct HV Expansion Savings (NT$)',
+                sec3Title: 'Sec 3: EMS & Smart Dispatch',
+                lblDlm: 'Dynamic Load Management (DLM)', descDlm: 'Caps total charging load under 60% to avoid demand penalties and lower contract capacity.',
+                lblTou: 'Time-of-Use Arbitrage (TOU)', descTou: 'Charge off-peak, discharge on-peak to earn arbitrage margin (built-in SOH degradation).',
+                planA: 'Plan A: Standalone Charging', planB: 'Plan B: EV+BESS+EMS', lbl10Yr: '10-Year Est. Net Profit',
+                lblRev: 'Annual Revenue Breakdown (10-Yr Avg)', lblRevChg: 'EV Charging Profit', lblRevCap: 'Capacity Cost Savings', lblRevTou: 'TOU Arbitrage', lblRevPen: 'Avoided Penalties',
+                lblChart: '10-Year Cumulative Cash Flow',
+                lblAuth: 'Export Authorization', descAuth: 'Export requested. Please verify your credentials.',
+                phUser: 'Username', phPass: 'Password', btnCancel: 'Cancel', btnConfirm: 'Verify & Export',
+                chartInit: 'Init', chartP1: 'Plan A (EV Only)', chartP2: 'Plan B (EV+BESS)',
+                pieL1: 'EV Charging', pieL2: 'Cap. Savings', pieL3: 'TOU (10-Yr Avg)', pieL4: 'Penalties',
+                tipDisabled: 'Disabled', tipMsg: 'Smart Tip: With DLM & BESS, suggested contract capacity is',
+                errAuth: 'Invalid credentials. Please try again!'
+            }
+        };
+
+        let currentLang = 'tw';
+
+        function switchLanguage() {
+            currentLang = currentLang === 'tw' ? 'en' : 'tw';
+            document.getElementById('langToggleText').innerText = currentLang === 'tw' ? 'EN' : '中';
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18nDict[currentLang][key]) {
+                    if (el.tagName === 'INPUT') {
+                        el.placeholder = i18nDict[currentLang][key];
+                    } else {
+                        el.innerText = i18nDict[currentLang][key];
+                    }
+                }
+            });
+            onInputChange(); // 重新渲染圖表與動態文字
+        }
+
+        document.getElementById('langToggleBtn').addEventListener('click', switchLanguage);
 
         /* ========== 主題切換邏輯 ========== */
         const html = document.documentElement;
@@ -227,11 +297,7 @@
 
         themeToggleBtn.addEventListener('click', () => {
             html.classList.toggle('dark');
-            if (html.classList.contains('dark')) {
-                localStorage.theme = 'dark';
-            } else {
-                localStorage.theme = 'light';
-            }
+            localStorage.theme = html.classList.contains('dark') ? 'dark' : 'light';
             onInputChange();
         });
 
@@ -251,45 +317,30 @@
         });
 
         document.getElementById('confirmAuthBtn').addEventListener('click', () => {
-            // 呼叫 roiEngine.js 內的授權模組進行驗證
             const isAuthorized = ROIEngine.verifyExportAuth(exportUser.value, exportPass.value);
-
             if (isAuthorized) {
                 authModal.classList.add('hidden');
                 exportPass.value = ''; 
                 exportToPDF();
             } else {
-                alert('帳號或密碼錯誤，請重新輸入！');
+                alert(i18nDict[currentLang]['errAuth']);
             }
         });
 
         function exportToPDF() {
             const element = document.getElementById('captureArea');
             const isDarkMode = html.classList.contains('dark');
-            
-            // 1. 取得欲匯出區塊的真實寬度與高度
             const w = element.scrollWidth;
             const h = element.scrollHeight;
-
+            
             const opt = {
-                // 留出一點邊距避免太貼邊
                 margin:       15,
-                filename:     'ZEROVA_充儲效益評估報告.pdf',
+                filename:     currentLang === 'tw' ? 'ZEROVA_充儲效益評估報告.pdf' : 'ZEROVA_ROI_Report.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { 
-                    scale: 2, 
-                    useCORS: true, 
-                    backgroundColor: isDarkMode ? '#080d16' : '#f8fafc' 
-                },
-                // 2. 【核心解法】將 PDF 尺寸動態設定為與網頁一樣大，拒絕強制分頁
-                jsPDF: { 
-                    unit: 'px', 
-                    format: [w + 30, h + 30], 
-                    orientation: 'portrait' 
-                }
+                html2canvas:  { scale: 2, useCORS: true, backgroundColor: isDarkMode ? '#080d16' : '#f8fafc' },
+                jsPDF:        { unit: 'px', format: [w + 30, h + 30], orientation: 'portrait' }
             };
 
-            // 執行 html2pdf
             html2pdf().set(opt).from(element).save();
         }
 
@@ -329,8 +380,14 @@
 
         function formatDisplayStyles(el, val, isPayback = false) {
             if (isPayback) {
-                el.innerText = val;
-                if (val.includes('虧損')) { 
+                let text = val;
+                // 處理英文版的回本年限與虧損文字
+                if (currentLang === 'en' && typeof text === 'string') {
+                    text = text.replace('每年虧損 ', 'Annual Loss ').replace(' 萬', '0k').replace(' 年', ' Yrs');
+                }
+                el.innerText = text;
+                
+                if (val.includes('虧損') || val.includes('Loss')) { 
                     el.classList.add('text-loss', 'text-2xl'); el.classList.remove('text-3xl', 'text-4xl'); 
                 } else { el.classList.remove('text-loss', 'text-2xl'); }
             } else {
@@ -358,7 +415,7 @@
                 bessSec.style.opacity = '0.4'; bessSec.style.pointerEvents = 'none';
                 emsSec.style.opacity = '0.4'; emsSec.style.pointerEvents = 'none';
                 cardPlanB.style.opacity = '0.3';
-                elResBPayback.innerText = '未啟用';
+                elResBPayback.innerText = i18nDict[currentLang]['tipDisabled'];
                 elResBPayback.classList.remove('text-loss', 'text-2xl');
                 elResBTenYear.innerText = '-';
                 document.getElementById('uiHint_SuggestedKw').innerHTML = '&nbsp;';
@@ -375,7 +432,7 @@
 
                 document.getElementById('uiHint_SuggestedKw').innerHTML = `
                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"></path></svg>
-                    智慧提示：開啟 DLM 限載與儲能後，建議可降約至 ${integrated.suggestedContractKw} kW`;
+                    ${i18nDict[currentLang]['tipMsg']} ${integrated.suggestedContractKw} kW`;
             }
 
             const b = integrated.breakdown;
@@ -391,31 +448,28 @@
             const isDark = html.classList.contains('dark');
             const gridColor = isDark ? '#1e293b' : '#e2e8f0';
             const tickColor = isDark ? '#64748b' : '#94a3b8';
+            const dict = i18nDict[currentLang];
 
             const ctxLine = document.getElementById('cashflowLineChart').getContext('2d');
             if (lineChart) lineChart.destroy();
             
             let lineDatasets = [
-                { label: '方案 A (單純充電)', data: cashFlowA, borderColor: isDark ? '#64748b' : '#94a3b8', borderDash: [4, 4], fill: false, tension: 0.3 }
+                { label: dict.chartP1, data: cashFlowA, borderColor: isDark ? '#64748b' : '#94a3b8', borderDash: [4, 4], fill: false, tension: 0.3 }
             ];
-            
             if (showPlanB) {
-                lineDatasets.unshift({ label: '方案 B (充儲+EMS)', data: cashFlowB, borderColor: '#00A896', backgroundColor: 'rgba(0,168,150,0.1)', fill: true, tension: 0.3 });
+                lineDatasets.unshift({ label: dict.chartP2, data: cashFlowB, borderColor: '#00A896', backgroundColor: 'rgba(0,168,150,0.1)', fill: true, tension: 0.3 });
             }
 
             lineChart = new Chart(ctxLine, {
                 type: 'line',
                 data: {
-                    labels: ['建置', 'Y1', 'Y2', 'Y3', 'Y4', 'Y5', 'Y6', 'Y7', 'Y8', 'Y9', 'Y10'],
+                    labels: [dict.chartInit, 'Y1', 'Y2', 'Y3', 'Y4', 'Y5', 'Y6', 'Y7', 'Y8', 'Y9', 'Y10'],
                     datasets: lineDatasets
                 },
                 options: { 
                     responsive: true, maintainAspectRatio: false, 
                     plugins: { legend: { labels: { color: tickColor } } }, 
-                    scales: { 
-                        x: { ticks: { color: tickColor }, grid: { color: gridColor } }, 
-                        y: { ticks: { color: tickColor }, grid: { color: gridColor } } 
-                    } 
+                    scales: { x: { ticks: { color: tickColor }, grid: { color: gridColor } }, y: { ticks: { color: tickColor }, grid: { color: gridColor } } } 
                 }
             });
 
@@ -430,7 +484,7 @@
             pieChart = new Chart(ctxPie, {
                 type: 'doughnut',
                 data: {
-                    labels: ['充電賣電', '降約節省', '時間電價(10年均)', '規避罰款'],
+                    labels: [dict.pieL1, dict.pieL2, dict.pieL3, dict.pieL4],
                     datasets: [{
                         data: dataValues.some(v => v > 0) ? dataValues : [1, 0, 0, 0],
                         backgroundColor: [isDark ? '#f1f5f9' : '#cbd5e1', '#34d399', '#22d3ee', '#fbbf24'],
@@ -462,7 +516,7 @@
             isUpdatingCost = true; elTotalCost.value = Math.round(parseFloat(elUnitCost.value || 0) * parseFloat(elBessKwh.value || 0)); isUpdatingCost = false; onInputChange();
         });
         elTotalCost.addEventListener('input', () => {
-            isUpdatingCost = true; elUnitCost.value = Math.round(parseFloat(elTotalCost.value || 0) / parseFloat(elBessKwh.value || 1)); isUpdatingCost = false; onInputChange();
+            is接UpdatingCost = true; elUnitCost.value = Math.round(parseFloat(elTotalCost.value || 0) / parseFloat(elBessKwh.value || 1)); isUpdatingCost = false; onInputChange();
         });
         elBessKwh.addEventListener('input', () => {
             isUpdatingCost = true; elTotalCost.value = Math.round(parseFloat(elUnitCost.value || 0) * parseFloat(elBessKwh.value || 0)); isUpdatingCost = false; onInputChange();
